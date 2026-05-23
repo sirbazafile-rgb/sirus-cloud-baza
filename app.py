@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-from streamlit_camera_input_live import camera_input_live
+
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -107,8 +107,10 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
 
     # 📷 ՏԵՍԱԽՑԻԿՈՎ ՍԿԱՆԵՐԻ ԲԱԺԻՆ
     st.markdown("#### 📷 Սկանավորել Հեռախոսի Տեսախցիկով")
-    image = camera_input_live(debounce_time=1000)
+  camera_image = st.camera_input("Նկարիր IMEI-ն")
     
+    if camera_image:
+        st.success("📷 Նկարը արված է։")
     if image:
         st.info("📷 Պատկերը ստացված է։ Այս ֆունկցիան հեռախոսի տեսախցիկով նկարում է տուփի շտրիխկոդը։")
         # Այստեղ կարող ես ձեռքով էլ ավելացնել, եթե սկաները չկարդա
