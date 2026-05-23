@@ -1,4 +1,4 @@
 streamlit
 requests
 pandas
-streamlit-camera-input-live
+streamlit-camera-input-live==0.0.1
