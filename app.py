@@ -27,10 +27,23 @@ if "page" not in st.session_state:
     st.session_state.page = "home"
 if "scanned_imeis" not in st.session_state:
     st.session_state.scanned_imeis = []
+if "show_scanner" not in st.session_state:
+    st.session_state.show_scanner = False
 
 # Գաղտնաբառեր
-ADMIN_PASSWORD = "1"
+ADMIN_PASSWORD = "sirusadmin2026"
 USER_PASSWORD = "sirususer2026"
+
+# Բրաուզերի հասցեից սկանավորված IMEI-ն որսալու հատված
+query_params = st.query_params
+if "scanned_barcode" in query_params:
+    new_imei = query_params["scanned_barcode"]
+    if new_imei not in st.session_state.scanned_imeis:
+        st.session_state.scanned_imeis.append(new_imei)
+    # Մաքրում ենք հասցեի տողը, որ էլի նույնը չավելացնի
+    st.query_params.clear()
+    st.session_state.show_scanner = False
+    st.rerun()
 
 # --- 🔐 ՄՈՒՏՔԻ ԷՋ ---
 if not st.session_state.authenticated:
@@ -88,7 +101,7 @@ if st.session_state.page == "home" and st.session_state.role == "admin":
     st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
     st.info("💡 Ապրանք մուտքագրելու համար վերևից ընտրիր 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ:")
 
-# --- 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ՍԿԱՆԵՐՈՎ) 📦 📦 📦
+# --- 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ 📦 📦 📦
 elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
     
@@ -105,64 +118,50 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     st.markdown("---")
     st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
 
-    st.markdown("#### 📷 Իրական Ժամանակով Սկաներ (HTML5)")
+    # Կոճակների համար ստեղծում ենք սիրուն սյուներ դաշտի վերևում
+    btn_col1, btn_col2, _ = st.columns([1, 1, 2])
+    with btn_col1:
+        if st.button("📷 ՍԿԱՆԱՎՈՐԵԼ ԿԱՄԵՐԱՅՈՎ", type="secondary"):
+            st.session_state.show_scanner = True
+            st.rerun()
+    with btn_col2:
+        if st.session_state.scanned_imeis:
+            if st.button("🗑️ ՄԱՔՐԵԼ ՑՈՒՑԱԿԸ"):
+                st.session_state.scanned_imeis = []
+                st.rerun()
 
-    # --- HTML5 / JavaScript Սկաների Կոմպոնենտ ---
-    # Այս կոդը բրաուզերի մեջ ուղղակի միացնում է տեսախցիկը ու սկանավորում
-    scanner_html = """
-    <div id="reader" style="width:100%; max-width:500px; border-radius:10px; overflow:hidden; margin:auto;"></div>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            // Սկանավորված կոդը ուղարկում ենք Streamlit-ին
-            window.parent.postMessage({
-                type: 'streamlit:setComponentValue',
-                value: decodedText
-            }, '*');
-            
-            // Կանգնեցնում ենք սկաները մի պահ, որ նույն կոդը 100 անգամ չկարդա
-            html5QrcodeScanner.clear();
-            setTimeout(() => { startScanner(); }, 2000);
-        }
-
-        function startScanner() {
-            window.html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", { fps: 15, qrbox: {width: 250, height: 150} }, false);
+    # Եթե սեղմել են Սկանավորել կոճակը, բացվում է թաքնված JS սկաները
+    if st.session_state.show_scanner:
+        st.warning("📷 Տեսախցիկն ակտիվ է: Պահիր շտրիխ կոդը կենտրոնում:")
+        
+        scanner_html = """
+        <div id="reader" style="width:100%; max-width:450px; border-radius:10px; overflow:hidden; margin:auto; border: 2px solid #00ff00;"></div>
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+            function onScanSuccess(decodedText, decodedResult) {
+                // Սկանավորված արժեքը գրում ենք URL-ի մեջ, որ Streamlit-ը տեսնի
+                const url = new URL(window.parent.location.href);
+                url.searchParams.set('scanned_barcode', decodedText);
+                window.parent.location.href = url.toString();
+            }
+            var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: {width: 280, height: 160} }, false);
             html5QrcodeScanner.render(onScanSuccess);
-        }
+        </script>
+        """
+        components.html(scanner_html, height=330, scrolling=False)
         
-        startScanner();
-    </script>
-    """
-    
-    # Ցուցադրում ենք սկաները էկրանին
-    with st.container():
-        # Ստանում ենք JavaScript-ից եկած արժեքը
-        scanned_value = components.html(scanner_html, height=350, scrolling=False)
-        
-    # Եթե նոր IMEI է սկանավորվել, ավելացնում ենք ցուցակում
-    # Քանի որ iframe-ից արժեք ստանալը Streamlit-ում կատարվում է query params-ով կամ փոխանցմամբ,
-    # մենք ստուգում ենք սկանավորված արդյունքը query_params-ի միջոցով (ավելի հուսալի տարբերակ)
-    
-    # Որպեսզի Streamlit-ը ֆիքսի JavaScript-ի ուղարկած տվյալը, օգտագործենք փոքրիկ հնարք text_input-ի միջոցով
-    # Բայց քանի որ postMessage-ը կարդալու համար պետք է Custom Component, ամենապարզ ձևը սկանավորած IMEI-ն ձեռքով կամ այս սկաներով ֆիքսելն է։
-    # Որպեսզի Streamlit-ը ճիշտ աշխատի HTML5-ի հետ, ահա թե ինչպես ենք անում.
-    
-    st.info("💡 Պահիր շտրիխ կոդը կամ QR-ը տեսախցիկի կենտրոնում։")
-
-    # Մաքրելու կոճակ
-    if st.session_state.scanned_imeis:
-        if st.button("🗑️ Մաքրել Ցուցակը"):
-            st.session_state.scanned_imeis = []
+        if st.button("❌ Փակել Տեսախցիկը"):
+            st.session_state.show_scanner = False
             st.rerun()
 
-    # Քանի որ վերևի JS կոդը փոխանցում է տվյալը, մենք թույլ ենք տալիս նաև արագ ձեռքով լրացնել, եթե հեռախոսը հին է
-    st.markdown("---")
-    
-    # Տեքստային դաշտ
+    # Միացնում ենք բոլոր սկանավորված IMEI-ները նոր տողերով
+    imei_text_value = "\n".join(st.session_state.scanned_imeis)
+
+    # Քո ուզած հիմնական IMEI դաշտը
     current_imeis = st.text_area(
         "🔢 IMEI-ների Ցուցակ (Ամեն տողում մեկ IMEI)", 
-        placeholder="111111111\n222222222", 
+        value=imei_text_value,
+        placeholder="Սեղմիր վերևի կոճակը սկանավորելու համար կամ գրիր ձեռքով...", 
         height=150
     )
     
@@ -190,7 +189,9 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                             success_count += 1
                 if success_count > 0:
                     st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։")
+                    st.session_state.scanned_imeis = [] # Մաքրում ենք ցուցակը հաջող ավարտից հետո
                     st.balloons()
+                    st.rerun()
                 if skipped_imeis:
                     st.warning(f"⚠️ Հետևյալ IMEI-ները արդեն կային բազայում. {', '.join(skipped_imeis)}")
         else:
