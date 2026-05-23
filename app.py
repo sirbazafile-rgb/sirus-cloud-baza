@@ -106,12 +106,12 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
 
     # 📷 ՏԵՍԱԽՑԻԿՈՎ ՍԿԱՆԵՐԻ ԲԱԺԻՆ
+    # 📷 ՍՏԱՆԴԱՐՏ ՏԵՍԱԽՑԻԿ
     st.markdown("#### 📷 Սկանավորել Հեռախոսի Տեսախցիկով")
-    image = camera_input_live(debounce_time=1000)
+    camera_image = st.camera_input("Նկարիր IMEI-ն")
     
-    if image:
-        st.info("📷 Պատկերը ստացված է։ Այս ֆունկցիան հեռախոսի տեսախցիկով նկարում է տուփի շտրիխկոդը։")
-        # Այստեղ կարող ես ձեռքով էլ ավելացնել, եթե սկաները չկարդա
+    if camera_image:
+        st.success("📷 Նկարը արված է։")
         
     st.markdown("---")
     
