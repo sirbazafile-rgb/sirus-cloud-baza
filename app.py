@@ -37,23 +37,32 @@ nshumner = st.text_area("Նշումներ (Պարտադիր չէ)", placeholder=
 
 if st.button("💾 Ավելացնել Բազայում", type="primary"):
     if model and imei:
-        payload = {
-            "model": model,
-            "storage": storage,
-            "color": color,
-            "imei": imei,
-            "matakarar": matakarar if matakarar else None,
-            "buy_date": str(buy_date),
-            "nshumner": nshumner if nshumner else None
-        }
+        # ՍՏՈՒԳՈՒՄ՝ արդյոք այս IMEI-ն արդեն կա բազայում
+        check_url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?imei=eq.{imei}"
+        check_response = requests.get(check_url, headers=HEADERS)
         
-        response = requests.post(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", headers=HEADERS, json=payload)
-        
-        if response.status_code in [200, 201]:
-            st.success(f"🎉 {model}-ը հաջողությամբ ավելացավ բազայում:")
-            st.rerun()
+        if check_response.status_code == 200 and len(check_response.json()) > 0:
+            existing_phone = check_response.json()[0]
+            st.error(f"⚠️ Սխա՛լ. {imei} IMEI-ով հեռախոս արդեն գոյություն ունի բազայում ({existing_phone['model']}):")
         else:
-            st.error(f"Խնդիր առաջացավ բազայի հետ կապվելիս: {response.text}")
+            # Եթե չկա, հանգիստ ավելացնում ենք
+            payload = {
+                "model": model,
+                "storage": storage,
+                "color": color,
+                "imei": imei,
+                "matakarar": matakarar if matakarar else None,
+                "buy_date": str(buy_date),
+                "nshumner": nshumner if nshumner else None
+            }
+            
+            response = requests.post(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", headers=HEADERS, json=payload)
+            
+            if response.status_code in [200, 201]:
+                st.success(f"🎉 {model}-ը հաջողությամբ ավելացավ բազայում:")
+                st.rerun()
+            else:
+                st.error(f"Խնդիր առաջացավ բազայի հետ կապվելիս: {response.text}")
     else:
         st.warning("⚠️ Խնդրում ենք լրացնել Մոդել և IMEI դաշտերը։")
 
@@ -69,22 +78,14 @@ if read_response.status_code == 200:
     if data:
         df = pd.DataFrame(data)
         
-        # Դասավորում ենք սյունակները ճիշտ հերթականությամբ
         ordered_cols = ['id', 'model', 'storage', 'color', 'imei', 'matakarar', 'buy_date', 'nshumner', 'created_at']
         cols_to_show = [c for c in ordered_cols if c in df.columns]
         df_clean = df[cols_to_show]
         
-        # Փոխում ենք աղյուսակի գլխագրերի անունները հայերենի
         rename_dict = {
-            'id': 'ID', 
-            'model': 'Մոդել', 
-            'storage': 'Հիշողություն', 
-            'color': 'Գույն', 
-            'imei': 'IMEI', 
-            'matakarar': 'Մատակարար', 
-            'buy_date': 'Գնելու Օր', 
-            'nshumner': 'Նշումներ', 
-            'created_at': 'Ավելացման Ժամ'
+            'id': 'ID', 'model': 'Մոդել', 'storage': 'Հիշողություն', 
+            'color': 'Գույն', 'imei': 'IMEI', 'matakarar': 'Մատակարար', 
+            'buy_date': 'Գնելու Օր', 'nshumner': 'Նշումներ', 'created_at': 'Ավելացման Ժամ'
         }
         df_clean = df_clean.rename(columns={k: v for k, v in rename_dict.items() if k in df_clean.columns})
         
