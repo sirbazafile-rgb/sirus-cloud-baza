@@ -111,8 +111,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     
     if camera_image:
         st.success("📷 Նկարը արված է։")
-    if image:
-        st.info("📷 Պատկերը ստացված է։ Այս ֆունկցիան հեռախոսի տեսախցիկով նկարում է տուփի շտրիխկոդը։")
         # Այստեղ կարող ես ձեռքով էլ ավելացնել, եթե սկաները չկարդա
         
     st.markdown("---")
