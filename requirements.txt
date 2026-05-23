@@ -1,3 +1,4 @@
+streamlit
 streamlit-camera-input-live
 requests
 pandas
