@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-import streamlit.components.v1 as components
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -16,39 +15,43 @@ HEADERS = {
     "Prefer": "return=representation"
 }
 
+# --- ԷՋԻ ՍԵԹԻՆԳՆԵՐ ---
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# Session State-ի ստեղծում
+# Session State-ի խելացի ստեղծում (որ էլ սխալ չտա)
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "role" not in st.session_state:
     st.session_state.role = None
 if "page" not in st.session_state:
     st.session_state.page = "home"
-if "scanned_imeis" not in st.session_state:
-    st.session_state.scanned_imeis = []
-if "show_scanner" not in st.session_state:
-    st.session_state.show_scanner = False
+
+# Custom CSS
+st.markdown("""
+    <style>
+    .main { padding-top: 1rem; }
+    .stButton>button { width: 100%; border-radius: 8px; height: 45px; font-weight: bold; }
+    .nav-container {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Գաղտնաբառեր
 ADMIN_PASSWORD = "sirusadmin2026"
 USER_PASSWORD = "sirususer2026"
 
-# Բրաուզերի հասցեից սկանավորված IMEI-ն որսալու հատված
-query_params = st.query_params
-if "scanned_barcode" in query_params:
-    new_imei = query_params["scanned_barcode"]
-    if new_imei not in st.session_state.scanned_imeis:
-        st.session_state.scanned_imeis.append(new_imei)
-    # Մաքրում ենք հասցեի տողը, որ էլի նույնը չավելացնի
-    st.query_params.clear()
-    st.session_state.show_scanner = False
-    st.rerun()
-
 # --- 🔐 ՄՈՒՏՔԻ ԷՋ ---
 if not st.session_state.authenticated:
     st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
-    input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
+    st.write("Խնդրում ենք մուտքագրել գաղտնաբառը՝ համակարգից օգտվելու համար։")
+    
+    input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը այստեղ...")
+    
     if st.button("🚪 Մուտք Գործել", type="primary"):
         if input_password == ADMIN_PASSWORD:
             st.session_state.authenticated = True
@@ -61,49 +64,57 @@ if not st.session_state.authenticated:
             st.session_state.page = "baza"
             st.rerun()
         else:
-            st.error("❌ Սխալ գաղտնաբառ։")
+            st.error("❌ Սխալ գաղտնաբառ։ Խնդրում ենք փորձել կրկին։")
     st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ---
-st.markdown("""
-    <style>
-    .stButton>button { width: 100%; border-radius: 8px; height: 45px; font-weight: bold; }
-    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
-    </style>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
+
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4 = st.columns([1, 1.2, 1.2, 1])
     with menu_col1:
         if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ", key="btn_home"):
-            st.session_state.page = "home"; st.rerun()
+            st.session_state.page = "home"
+            st.rerun()
     with menu_col2:
         if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ", key="btn_add"):
-            st.session_state.page = "add_product"; st.rerun()
+            st.session_state.page = "add_product"
+            st.rerun()
     with menu_col3:
         if st.button("📊 SIRUS CLOUD BAZA", key="btn_baza"):
-            st.session_state.page = "baza"; st.rerun()
+            st.session_state.page = "baza"
+            st.rerun()
     with menu_col4:
         if st.button("🚪 ԵԼՔ", key="btn_logout"):
-            st.session_state.authenticated = False; st.rerun()
+            st.session_state.authenticated = False
+            st.session_state.role = None
+            st.session_state.page = "home"
+            st.rerun()
 else:
     menu_col1, menu_col2 = st.columns([3, 1])
-    with menu_col1: st.markdown("### 📊 SIRUS CLOUD BAZA (Դիտման Ռեժիմ)")
+    with menu_col1:
+        st.markdown("### 📊 SIRUS CLOUD BAZA (Դիտման Ռեժիմ)")
     with menu_col2:
         if st.button("🚪 ԵԼՔ", key="btn_logout_user"):
-            st.session_state.authenticated = False; st.rerun()
+            st.session_state.authenticated = False
+            st.session_state.role = None
+            st.session_state.page = "home"
+            st.rerun()
+
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 1. 🏠 ԳԼԽԱՎՈՐ ԷՋ ---
+# --- 1. 🏠 🏠 🏠 ԳԼԽԱՎՈՐ ԷՋ ---
 if st.session_state.page == "home" and st.session_state.role == "admin":
     st.title("🚀 SIRUS SYSTEM (Admin Mode)")
     st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
-    st.info("💡 Ապրանք մուտքագրելու համար վերևից ընտրիր 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ:")
+    st.write("Բարի գալուստ։ Այստեղից կառավարում ես քո ամբողջ բիզնեսը։")
+    st.markdown("---")
+    st.info("💡 Ապրանք մուտքագրելու համար վերևից ընտրիր 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ, իսկ բազան տեսնելու համար՝ 📊 SIRUS CLOUD BAZA։")
 
-# --- 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ 📦 📦 📦
+# --- 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ ---
 elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
+    st.caption("✨ Մուտքագրիր նոր ստացված հեռախոսները բազմակի IMEI կոդերով")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -116,60 +127,13 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
         nshumner = st.text_input("📌 Լրացուցիչ Նշումներ", placeholder="Նշումներ...")
 
     st.markdown("---")
-    st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
-
-    # Կոճակների համար ստեղծում ենք սիրուն սյուներ դաշտի վերևում
-    btn_col1, btn_col2, _ = st.columns([1, 1, 2])
-    with btn_col1:
-        if st.button("📷 ՍԿԱՆԱՎՈՐԵԼ ԿԱՄԵՐԱՅՈՎ", type="secondary"):
-            st.session_state.show_scanner = True
-            st.rerun()
-    with btn_col2:
-        if st.session_state.scanned_imeis:
-            if st.button("🗑️ ՄԱՔՐԵԼ ՑՈՒՑԱԿԸ"):
-                st.session_state.scanned_imeis = []
-                st.rerun()
-
-    # Եթե սեղմել են Սկանավորել կոճակը, բացվում է թաքնված JS սկաները
-    if st.session_state.show_scanner:
-        st.warning("📷 Տեսախցիկն ակտիվ է: Պահիր շտրիխ կոդը կենտրոնում:")
-        
-        scanner_html = """
-        <div id="reader" style="width:100%; max-width:450px; border-radius:10px; overflow:hidden; margin:auto; border: 2px solid #00ff00;"></div>
-        <script src="https://unpkg.com/html5-qrcode"></script>
-        <script>
-            function onScanSuccess(decodedText, decodedResult) {
-                // Սկանավորված արժեքը գրում ենք URL-ի մեջ, որ Streamlit-ը տեսնի
-                const url = new URL(window.parent.location.href);
-                url.searchParams.set('scanned_barcode', decodedText);
-                window.parent.location.href = url.toString();
-            }
-            var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: {width: 280, height: 160} }, false);
-            html5QrcodeScanner.render(onScanSuccess);
-        </script>
-        """
-        components.html(scanner_html, height=330, scrolling=False)
-        
-        if st.button("❌ Փակել Տեսախցիկը"):
-            st.session_state.show_scanner = False
-            st.rerun()
-
-    # Միացնում ենք բոլոր սկանավորված IMEI-ները նոր տողերով
-    imei_text_value = "\n".join(st.session_state.scanned_imeis)
-
-    # Քո ուզած հիմնական IMEI դաշտը
-    current_imeis = st.text_area(
-        "🔢 IMEI-ների Ցուցակ (Ամեն տողում մեկ IMEI)", 
-        value=imei_text_value,
-        placeholder="Սեղմիր վերևի կոճակը սկանավորելու համար կամ գրիր ձեռքով...", 
-        height=150
-    )
+    imei_input = st.text_area("🔢 IMEI Կոդեր (Ամեն տողում գրիր մեկ IMEI)", placeholder="111111111\n222222222", height=150)
     
     if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
-        if model and current_imeis:
-            imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
+        if model and imei_input:
+            imei_list = [i.strip() for i in imei_input.split('\n') if i.strip()]
             if not imei_list:
-                st.warning("⚠️ Խնդրում ենք գրել կամ սկանավորել գոնե մեկ IMEI։")
+                st.warning("⚠️ Խնդրում ենք գրել գոնե մեկ IMEI կոդ։")
             else:
                 success_count = 0
                 skipped_imeis = []
@@ -180,26 +144,30 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                         skipped_imeis.append(imei)
                     else:
                         payload = {
-                            "model": model, "storage": storage, "color": color, 
-                            "imei": imei, "matakarar": matakarar if matakarar else None,
-                            "buy_date": str(buy_date), "nshumner": nshumner if nshumner else None
+                            "model": model,
+                            "storage": storage,
+                            "color": color,
+                            "imei": imei,
+                            "matakarar": matakarar if matakarar else None,
+                            "buy_date": str(buy_date),
+                            "nshumner": nshumner if nshumner else None
                         }
                         res = requests.post(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", headers=HEADERS, json=payload)
                         if res.status_code in [200, 201]:
                             success_count += 1
                 if success_count > 0:
                     st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։")
-                    st.session_state.scanned_imeis = [] # Մաքրում ենք ցուցակը հաջող ավարտից հետո
                     st.balloons()
-                    st.rerun()
                 if skipped_imeis:
-                    st.warning(f"⚠️ Հետևյալ IMEI-ները արդեն կային բազայում. {', '.join(skipped_imeis)}")
+                    st.warning(f"⚠️ Հետևյալ IMEI-ները բաց թողնվեցին. {', '.join(skipped_imeis)}")
         else:
             st.warning("⚠️ Խնդրում ենք լրացնել Մոդելը և IMEI կոդերը։")
 
-# --- 3. 📊 SIRUS CLOUD BAZA ---
+# --- 3. 📊 📊 📊 SIRUS CLOUD BAZA ---
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
+    st.caption("✨ Առկա ապրանքների դիտում, որոնում և ֆիլտրում")
+    
     read_response = requests.get(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=*&order=id.asc", headers=HEADERS)
 
     if read_response.status_code == 200:
@@ -224,6 +192,7 @@ elif st.session_state.page == "baza":
                 ordered_cols = ['id', 'model', 'storage', 'color', 'imei', 'matakarar', 'buy_date', 'nshumner']
                 cols_to_show = [c for c in ordered_cols if c in df_filtered.columns]
                 df_clean = df_filtered[cols_to_show]
+                
                 rename_dict = {
                     'id': 'ID', 'model': 'Մոդել', 'storage': 'Հիշողություն', 
                     'color': 'Գույն', 'imei': 'IMEI', 'matakarar': 'Մատակարար', 
