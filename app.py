@@ -158,4 +158,32 @@ elif st.session_state.page == "baza":
             if search_query:
                 search_query = search_query.lower()
                 mask = (
-                    df['model'].astype(str).
+                    df['model'].astype(str).str.lower().str.contains(search_query) |
+                    df['imei'].astype(str).str.lower().str.contains(search_query) |
+                    df['color'].astype(str).str.lower().str.contains(search_query) |
+                    df['matakarar'].astype(str).str.lower().str.contains(search_query)
+                )
+                df_filtered = df[mask]
+            else:
+                df_filtered = df
+
+            if not df_filtered.empty:
+                ordered_cols = ['id', 'model', 'storage', 'color', 'imei', 'matakarar', 'buy_date', 'nshumner']
+                cols_to_show = [c for c in ordered_cols if c in df_filtered.columns]
+                df_clean = df_filtered[cols_to_show]
+                
+                rename_dict = {
+                    'id': 'ID', 'model': 'Մոդել', 'storage': 'Հիշողություն', 
+                    'color': 'Գույն', 'imei': 'IMEI', 'matakarar': 'Մատակարար', 
+                    'buy_date': 'Գնելու Օր', 'nshumner': 'Նշումներ'
+                }
+                df_clean = df_clean.rename(columns={k: v for k, v in rename_dict.items() if k in df_clean.columns})
+                
+                st.dataframe(df_clean, use_container_width=True, hide_index=True)
+                st.caption(f"💡 Ընդհանուր բազայում կա {len(df_clean)} հեռախոս:")
+            else:
+                st.info("🔍 Համապատասխան հեռախոս չգտնվեց։")
+        else:
+            st.info("📦 Բազան դեռ դատարկ է։")
+    else:
+        st.error("Չհաջողվեց կապվել բազայի հետ։")
