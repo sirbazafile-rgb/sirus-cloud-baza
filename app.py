@@ -18,15 +18,14 @@ HEADERS = {
 # --- ԷՋԻ ՍԵԹԻՆԳՆԵՐ ---
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# Custom CSS
+# Custom CSS՝ Երեք կոճակով մենյուի սիրունացում
 st.markdown("""
     <style>
     .main { padding-top: 1rem; }
     .stButton>button { width: 100%; border-radius: 8px; height: 45px; font-weight: bold; }
-    div[data-testid="stExpander"] { border-radius: 10px; background-color: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); }
     .nav-container {
         background-color: rgba(255, 255, 255, 0.05);
-        padding: 10px;
+        padding: 12px;
         border-radius: 10px;
         margin-bottom: 25px;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -34,9 +33,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 🗺️ ՎԵՐԵՎԻ ԳԼԽԱՎՈՐ ՄԵՆՅՈՒ (NAVIGATION BAR) ---
+# Պահում ենք ընթացիկ էջի վիճակը (default էջը՝ home)
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+# --- 🗺️ ՎԵՐԵՎԻ ԳԼԽԱՎՈՐ ՄԵՆՅՈՒ (3 ԱՌԱՆՁԻՆ ԿՈՃԱԿ) ---
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-menu_col1, menu_col2, menu_col3 = st.columns([1, 1, 3])
+menu_col1, menu_col2, menu_col3, menu_col4 = st.columns([1, 1.2, 1.2, 2])
 
 with menu_col1:
     if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ", key="btn_home"):
@@ -44,21 +47,38 @@ with menu_col1:
         st.rerun()
 
 with menu_col2:
+    if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ", key="btn_add"):
+        st.session_state.page = "add_product"
+        st.rerun()
+
+with menu_col3:
     if st.button("📊 SIRUS CLOUD BAZA", key="btn_baza"):
         st.session_state.page = "baza"
         st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-
 
 # ==========================================
-# 1. 🏠 🏠 🏠 ԳԼԽԱՎՈՐ ԷՋ (ԱՊՐԱՆՔԻ ՄՈՒՏՔԱԳՐՈՒՄ) 🏠 🏠 🏠
+# 1. 🏠 🏠 🏠 ԳԼԽԱՎՈՐ ԷՋ (HOME) 🏠 🏠 🏠
 # ==========================================
 if st.session_state.page == "home":
+    st.title("🚀 SIRUS SYSTEM")
+    st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
+    st.write("Բարի գալուստ քո անձնական աշխատանքային տիրույթ։")
+    st.markdown("---")
+    st.info("""
+    💡 **Ինչպես աշխատել համակարգով.**
+    * Նոր ապրանքներ և IMEI-ներ մուտքագրելու համար վերևից ընտրիր **`📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ`** էջը։
+    * Բազան տեսնելու, ֆիլտրելու կամ փնտրելու համար ընտրիր **`📊 SIRUS CLOUD BAZA`** էջը։
+    """)
+
+
+# ==========================================
+# 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ԱՎԵԼԱՑՈՒՄ) 📦 📦 📦
+# ==========================================
+elif st.session_state.page == "add_product":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
-    st.caption("✨ Լրացրու նոր ստացված ապրանքների տվյալները և IMEI կոդերը")
+    st.caption("✨ Մուտքագրիր նոր ստացված հեռախոսները բազմակի IMEI կոդերով")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -70,7 +90,7 @@ if st.session_state.page == "home":
     with col2:
         matakarar = st.text_input("📦 Մատակարար", placeholder="օր. Dubai")
         buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.now())
-        nshumner = st.text_input("📌 Լրացուցիչ Նշումներ (Պարտադիր չէ)", placeholder="Նշումներ...")
+        nshumner = st.text_input("📌 Լրացուցիչ Նշումներ", placeholder="Նշումներ...")
 
     st.markdown("---")
     imei_input = st.text_area("🔢 IMEI Կոդեր (Ամեն տողում գրիր մեկ IMEI)", placeholder="111111111\n222222222\n333333333", height=150)
@@ -108,26 +128,23 @@ if st.session_state.page == "home":
                 
                 if success_count > 0:
                     st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։")
+                    st.balloons()
                 
                 if skipped_imeis:
                     st.warning(f"⚠️ Հետևյալ IMEI-ները բաց թողնվեցին (արդեն կան բազայում). {', '.join(skipped_imeis)}")
-                
-                if success_count > 0:
-                    st.balloons() # Սիրուն փուչիկներ հաջող ավելացման դեպքում
         else:
             st.warning("⚠️ Խնդրում ենք լրացնել Մոդելը և IMEI կոդերը։")
 
 
 # ==========================================
-# 2. 📊 📊 📊 ԲԱԶԱՅԻ ԷՋ (ՄԻԱՅՆ ՑՈՒՑԱԴՐՈՒՄ ՈՒ ՈՐՈՆՈՒՄ) 📊 📊 📊
+# 3. 📊 📊 📊 SIRUS CLOUD BAZA (ՄԻԱՅՆ ԲԱԶԱ) 📊 📊 📊
 # ==========================================
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
-    st.caption("✨ Բազայում առկա ապրանքների դիտում և արագ որոնում")
+    st.caption("✨ Առկա ապրանքների դիտում, որոնում և ֆիլտրում")
     
     st.markdown("---")
     
-    # Կանչում ենք տվյալները (Նորերը ավելանում են տակից՝ id.asc)
     read_response = requests.get(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=*&order=id.asc", headers=HEADERS)
 
     if read_response.status_code == 200:
@@ -135,39 +152,10 @@ elif st.session_state.page == "baza":
         if data:
             df = pd.DataFrame(data)
             
-            # 🔍 Միայն Որոնման Դաշտը
-            search_query = st.text_input("🔍 Արագ փնտրում (Մոդել, IMEI, Գույն, Մատակարար)...", placeholder="Գրիր այստեղ՝ գտնելու համար...")
+            # 🔍 Որոնման Համակարգ
+            search_query = st.text_input("🔍 Արագ փնտրում (Մոդել, IMEI, Գույն, Մատակարար)...", placeholder="Գրիր այստեղ...")
             
             if search_query:
                 search_query = search_query.lower()
                 mask = (
-                    df['model'].astype(str).str.lower().str.contains(search_query) |
-                    df['imei'].astype(str).str.lower().str.contains(search_query) |
-                    df['color'].astype(str).str.lower().str.contains(search_query) |
-                    df['matakarar'].astype(str).str.lower().str.contains(search_query)
-                )
-                df_filtered = df[mask]
-            else:
-                df_filtered = df
-
-            if not df_filtered.empty:
-                ordered_cols = ['id', 'model', 'storage', 'color', 'imei', 'matakarar', 'buy_date', 'nshumner']
-                cols_to_show = [c for c in ordered_cols if c in df_filtered.columns]
-                df_clean = df_filtered[cols_to_show]
-                
-                rename_dict = {
-                    'id': 'ID', 'model': 'Մոդել', 'storage': 'Հիշողություն', 
-                    'color': 'Գույն', 'imei': 'IMEI', 'matakarar': 'Մատակարար', 
-                    'buy_date': 'Գնելու Օր', 'nshumner': 'Նշումներ'
-                }
-                df_clean = df_clean.rename(columns={k: v for k, v in rename_dict.items() if k in df_clean.columns})
-                
-                # Մաքուր աղյուսակը
-                st.dataframe(df_clean, use_container_width=True, hide_index=True)
-                st.caption(f"💡 Ընդհանուր բազայում կա {len(df_clean)} հեռախոս:")
-            else:
-                st.info("🔍 Համապատասխան հեռախոս չգտնվեց։")
-        else:
-            st.info("📦 Բազան դեռ դատարկ է։ Ապրանք մուտքագրելու համար անցիր «ԳԼԽԱՎՈՐ ԷՋ»։")
-    else:
-        st.error("Չհաջողվեց կապվել բազայի հետ։")
+                    df['model'].astype(str).
