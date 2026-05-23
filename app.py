@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-from streamlit_camera_input_live import camera_input_live
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
