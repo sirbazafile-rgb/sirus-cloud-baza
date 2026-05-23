@@ -2,6 +2,9 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
+import cv2
+from pyzbar.pyzbar import decode
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -104,19 +107,51 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     st.markdown("---")
     st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
 
-    # 📷 ՏԵՍԱԽՑԻԿՈՎ ՍԿԱՆԵՐԻ ԲԱԺԻՆ
-    # 📷 ՍՏԱՆԴԱՐՏ ՏԵՍԱԽՑԻԿ
-    st.markdown("#### 📷 Սկանավորել Հեռախոսի Տեսախցիկով")
-    camera_image = st.camera_input("Նկարիր IMEI-ն")
+    # --- LIVE ՏԵՍԱԽՑԻԿԻ ԴԱՍԱԿԱՐԳ ---
+    class BarcodeTransformer(VideoTransformerBase):
+        def transform(self, frame):
+            img = frame.to_ndarray(format="bgr24")
+            detected_barcodes = decode(img)
+            
+            for barcode in detected_barcodes:
+                barcode_data = barcode.data.decode("utf-8")
+                
+                # Եթե այս IMEI-ն դեռ չկա ցուցակում, ավելացնում ենք session_state-ի մեջ
+                if barcode_data not in st.session_state.scanned_imeis:
+                    st.session_state.scanned_imeis.append(barcode_data)
+                
+                # Կադրի վրա կանաչ շրջանակ գծելու համար
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(img, barcode_data, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+            return img
+
+    st.markdown("#### 📷 Պահիր շտրիխ կոդը տեսախցիկի դիմաց")
     
-    if camera_image:
-        st.success("📷 Նկարը արված է։")
-        
+    # Գործարկում ենք Live Streamer-ը
+    webrtc_streamer(
+        key="imei_scanner",
+        video_transformer_factory=BarcodeTransformer,
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}, # Հուսալի կապի համար
+        media_stream_constraints={"video": True, "audio": False}
+    )
+
+    # Մաքրելու կոճակ սկանավորված IMEI-ների համար
+    if st.session_state.scanned_imeis:
+        if st.button("🗑️ Մաքրել Սկանավորված Ցուցակը"):
+            st.session_state.scanned_imeis = []
+            st.rerun()
+
+    # Ստեղծում ենք տեքստ՝ միացնելով սկանավորված բոլոր IMEI-ները նոր տողերով
+    imei_text_value = "\n".join(st.session_state.scanned_imeis)
+
     st.markdown("---")
     
-    # Տեքստային դաշտ, որտեղ հայտնվում են IMEI-ները
+    # Տեքստային դաշտ, որտեղ ավտոմատ լրացվում են սկանավորվածները, կամ կարելի է ձեռքով գրել
     current_imeis = st.text_area(
         "🔢 IMEI-ների Ցուցակ (Ամեն տողում մեկ IMEI)", 
+        value=imei_text_value,
         placeholder="111111111\n222222222", 
         height=150
     )
@@ -145,6 +180,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                             success_count += 1
                 if success_count > 0:
                     st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։")
+                    st.session_state.scanned_imeis = [] # Բազա նստելուց հետո մաքրում ենք քեշը
                     st.balloons()
                 if skipped_imeis:
                     st.warning(f"⚠️ Հետևյալ IMEI-ները արդեն կային բազայում. {', '.join(skipped_imeis)}")
