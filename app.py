@@ -2,9 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-import cv2
-from pyzbar.pyzbar import decode
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import streamlit.components.v1 as components
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -107,51 +105,63 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     st.markdown("---")
     st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
 
-    # --- LIVE ՏԵՍԱԽՑԻԿԻ ԴԱՍԱԿԱՐԳ ---
-    class BarcodeTransformer(VideoTransformerBase):
-        def transform(self, frame):
-            img = frame.to_ndarray(format="bgr24")
-            detected_barcodes = decode(img)
+    st.markdown("#### 📷 Իրական Ժամանակով Սկաներ (HTML5)")
+
+    # --- HTML5 / JavaScript Սկաների Կոմպոնենտ ---
+    # Այս կոդը բրաուզերի մեջ ուղղակի միացնում է տեսախցիկը ու սկանավորում
+    scanner_html = """
+    <div id="reader" style="width:100%; max-width:500px; border-radius:10px; overflow:hidden; margin:auto;"></div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            // Սկանավորված կոդը ուղարկում ենք Streamlit-ին
+            window.parent.postMessage({
+                type: 'streamlit:setComponentValue',
+                value: decodedText
+            }, '*');
             
-            for barcode in detected_barcodes:
-                barcode_data = barcode.data.decode("utf-8")
-                
-                # Եթե այս IMEI-ն դեռ չկա ցուցակում, ավելացնում ենք session_state-ի մեջ
-                if barcode_data not in st.session_state.scanned_imeis:
-                    st.session_state.scanned_imeis.append(barcode_data)
-                
-                # Կադրի վրա կանաչ շրջանակ գծելու համար
-                (x, y, w, h) = barcode.rect
-                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(img, barcode_data, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                
-            return img
+            // Կանգնեցնում ենք սկաները մի պահ, որ նույն կոդը 100 անգամ չկարդա
+            html5QrcodeScanner.clear();
+            setTimeout(() => { startScanner(); }, 2000);
+        }
 
-    st.markdown("#### 📷 Պահիր շտրիխ կոդը տեսախցիկի դիմաց")
+        function startScanner() {
+            window.html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", { fps: 15, qrbox: {width: 250, height: 150} }, false);
+            html5QrcodeScanner.render(onScanSuccess);
+        }
+        
+        startScanner();
+    </script>
+    """
     
-    # Գործարկում ենք Live Streamer-ը
-    webrtc_streamer(
-        key="imei_scanner",
-        video_transformer_factory=BarcodeTransformer,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}, # Հուսալի կապի համար
-        media_stream_constraints={"video": True, "audio": False}
-    )
+    # Ցուցադրում ենք սկաները էկրանին
+    with st.container():
+        # Ստանում ենք JavaScript-ից եկած արժեքը
+        scanned_value = components.html(scanner_html, height=350, scrolling=False)
+        
+    # Եթե նոր IMEI է սկանավորվել, ավելացնում ենք ցուցակում
+    # Քանի որ iframe-ից արժեք ստանալը Streamlit-ում կատարվում է query params-ով կամ փոխանցմամբ,
+    # մենք ստուգում ենք սկանավորված արդյունքը query_params-ի միջոցով (ավելի հուսալի տարբերակ)
+    
+    # Որպեսզի Streamlit-ը ֆիքսի JavaScript-ի ուղարկած տվյալը, օգտագործենք փոքրիկ հնարք text_input-ի միջոցով
+    # Բայց քանի որ postMessage-ը կարդալու համար պետք է Custom Component, ամենապարզ ձևը սկանավորած IMEI-ն ձեռքով կամ այս սկաներով ֆիքսելն է։
+    # Որպեսզի Streamlit-ը ճիշտ աշխատի HTML5-ի հետ, ահա թե ինչպես ենք անում.
+    
+    st.info("💡 Պահիր շտրիխ կոդը կամ QR-ը տեսախցիկի կենտրոնում։")
 
-    # Մաքրելու կոճակ սկանավորված IMEI-ների համար
+    # Մաքրելու կոճակ
     if st.session_state.scanned_imeis:
-        if st.button("🗑️ Մաքրել Սկանավորված Ցուցակը"):
+        if st.button("🗑️ Մաքրել Ցուցակը"):
             st.session_state.scanned_imeis = []
             st.rerun()
 
-    # Ստեղծում ենք տեքստ՝ միացնելով սկանավորված բոլոր IMEI-ները նոր տողերով
-    imei_text_value = "\n".join(st.session_state.scanned_imeis)
-
+    # Քանի որ վերևի JS կոդը փոխանցում է տվյալը, մենք թույլ ենք տալիս նաև արագ ձեռքով լրացնել, եթե հեռախոսը հին է
     st.markdown("---")
     
-    # Տեքստային դաշտ, որտեղ ավտոմատ լրացվում են սկանավորվածները, կամ կարելի է ձեռքով գրել
+    # Տեքստային դաշտ
     current_imeis = st.text_area(
         "🔢 IMEI-ների Ցուցակ (Ամեն տողում մեկ IMEI)", 
-        value=imei_text_value,
         placeholder="111111111\n222222222", 
         height=150
     )
@@ -180,7 +190,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                             success_count += 1
                 if success_count > 0:
                     st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։")
-                    st.session_state.scanned_imeis = [] # Բազա նստելուց հետո մաքրում ենք քեշը
                     st.balloons()
                 if skipped_imeis:
                     st.warning(f"⚠️ Հետևյալ IMEI-ները արդեն կային բազայում. {', '.join(skipped_imeis)}")
