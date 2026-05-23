@@ -31,7 +31,7 @@ if "show_scanner" not in st.session_state:
     st.session_state.show_scanner = False
 
 # Գաղտնաբառեր
-ADMIN_PASSWORD = "sirusadmin2026"
+ADMIN_PASSWORD = "1"
 USER_PASSWORD = "sirususer2026"
 
 # Բրաուզերի հասցեից սկանավորված IMEI-ն որսալու հատված
