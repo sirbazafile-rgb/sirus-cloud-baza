@@ -2,7 +2,7 @@ from datetime import datetime
 import pandas as pd
 import requests
 import streamlit as st
-from streamlit_camera_input_live import camera_input_live
+
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 # ⚠️ Զգուշացում: Մի թողեք Key-երը հանրային բաց կոդի մեջ: Օգտագործեք st.secrets
