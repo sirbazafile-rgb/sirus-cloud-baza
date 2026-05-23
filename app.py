@@ -29,7 +29,7 @@ if "scanned_imeis" not in st.session_state:
     st.session_state.scanned_imeis = []
 
 # Գաղտնաբառեր
-ADMIN_PASSWORD = "sirusadmin2026"
+ADMIN_PASSWORD = "1"
 USER_PASSWORD = "sirususer2026"
 
 # --- 🔐 ՄՈՒՏՔԻ ԷՋ ---
