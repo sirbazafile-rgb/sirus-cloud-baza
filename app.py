@@ -18,7 +18,7 @@ HEADERS = {
 # --- ԷՋԻ ՍԵԹԻՆԳՆԵՐ ---
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# Custom CSS՝ Երեք կոճակով մենյուի սիրունացում
+# Custom CSS
 st.markdown("""
     <style>
     .main { padding-top: 1rem; }
@@ -33,50 +33,102 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Պահում ենք ընթացիկ էջի վիճակը (default էջը՝ home)
-if "page" not in st.session_state:
-    st.session_state.page = "home"
+# --- 🔐 ՄՈՒՏՔԻ ՀԱՄԱԿԱՐԳ (AUTHENTICATION) ---
+# Գաղտնաբառերի սահմանում
+ADMIN_PASSWORD = "sirusadmin2026"
+USER_PASSWORD = "sirususer2026"
 
-# --- 🗺️ ՎԵՐԵՎԻ ԳԼԽԱՎՈՐ ՄԵՆՅՈՒ (3 ԱՌԱՆՁԻՆ ԿՈՃԱԿ) ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.role = None
+
+if not st.session_state.authenticated:
+    st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
+    st.write("Խնդրում ենք մուտքագրել գաղտնաբառը՝ համակարգից օգտվելու համար։")
+    
+    input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը այստեղ...")
+    
+    if st.button("🚪 Մուտք Գործել", type="primary"):
+        if input_password == ADMIN_PASSWORD:
+            st.session_state.authenticated = True
+            st.session_state.role = "admin"
+            st.session_state.page = "home"
+            st.success("🎉 Բարի գալուստ, Ադմինիստրատոր։")
+            st.rerun()
+        elif input_password == USER_PASSWORD:
+            st.session_state.authenticated = True
+            st.session_state.role = "user"
+            st.session_state.page = "baza" # User-ին միանգամից տանում ենք Բազայի էջ
+            st.success("🎉 Բարի գալուստ, Օգտատեր։")
+            st.rerun()
+        else:
+            st.error("❌ Սխալ գաղտնաբառ։ Խնդրում ենք փորձել կրկին։")
+            
+    st.stop() # Կանգնեցնում է էջի մնացած մասը, մինչև պասվորդը չգրվի
+
+
+# ==========================================
+#  ԵԹԵ ՄՈՒՏՔԸ ՀԱՋՈՂՎԱԾ Է՝ ՑՈՒՅՑ ՏԱԼ ՄԵՆՅՈՒՆ
+# ==========================================
+
+# --- 🗺️ ՎԵՐԵՎԻ ԳԼԽԱՎՈՐ ՄԵՆՅՈՒ ---
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-menu_col1, menu_col2, menu_col3, menu_col4 = st.columns([1, 1.2, 1.2, 2])
 
-with menu_col1:
-    if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ", key="btn_home"):
-        st.session_state.page = "home"
-        st.rerun()
+# Կախված նրանից, թե ով է մտել, մենյուն տարբեր կլինի
+if st.session_state.role == "admin":
+    # Ադմինը տեսնում է բոլոր 3 կոճակները
+    menu_col1, menu_col2, menu_col3, menu_col4 = st.columns([1, 1.2, 1.2, 1])
+    
+    with menu_col1:
+        if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ", key="btn_home"):
+            st.session_state.page = "home"
+            st.rerun()
+    with menu_col2:
+        if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ", key="btn_add"):
+            st.session_state.page = "add_product"
+            st.rerun()
+    with menu_col3:
+        if st.button("📊 SIRUS CLOUD BAZA", key="btn_baza"):
+            st.session_state.page = "baza"
+            st.rerun()
+    with menu_col4:
+        if st.button("🚪 ԵԼՔ", key="btn_logout"):
+            st.session_state.authenticated = False
+            st.session_state.role = None
+            st.rerun()
+else:
+    # Օգտատերը (User) տեսնում է ՄԻԱՅՆ Բազան ու Ելքը
+    menu_col1, menu_col2 = st.columns([3, 1])
+    with menu_col1:
+        st.markdown("### 📊 SIRUS CLOUD BAZA (Դիտման Ռեժիմ)")
+    with menu_col2:
+        if st.button("🚪 ԵԼՔ", key="btn_logout_user"):
+            st.session_state.authenticated = False
+            st.session_state.role = None
+            st.rerun()
 
-with menu_col2:
-    if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ", key="btn_add"):
-        st.session_state.page = "add_product"
-        st.rerun()
-
-with menu_col3:
-    if st.button("📊 SIRUS CLOUD BAZA", key="btn_baza"):
-        st.session_state.page = "baza"
-        st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ==========================================
-# 1. 🏠 🏠 🏠 ԳԼԽԱՎՈՐ ԷՋ (HOME) 🏠 🏠 🏠
+# 1. 🏠 🏠 🏠 ԳԼԽԱՎՈՐ ԷՋ (ՄԻԱՅՆ ԱԴՄԻՆԻ ՀԱՄԱՐ) 🏠 🏠 🏠
 # ==========================================
-if st.session_state.page == "home":
-    st.title("🚀 SIRUS SYSTEM")
+if st.session_state.page == "home" and st.session_state.role == "admin":
+    st.title("🚀 SIRUS SYSTEM (Admin Mode)")
     st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
-    st.write("Բարի գալուստ քո անձնական աշխատանքային տիրույթ։")
+    st.write("Բարի գալուստ, ախպերս։ Այստեղից կառավարում ես քո ամբողջ բիզնեսը։")
     st.markdown("---")
     st.info("""
-    💡 **Ինչպես աշխատել համակարգով.**
-    * Նոր ապրանքներ և IMEI-ներ մուտքագրելու համար վերևից ընտրիր **`📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ`** էջը։
-    * Բազան տեսնելու, ֆիլտրելու կամ փնտրելու համար ընտրիր **`📊 SIRUS CLOUD BAZA`** էջը։
+    💡 **Արագ հրահանգներ.**
+    * Ապրանք մուտքագրելու համար վերևից ընտրիր **`📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ`**։
+    * Բազան ստուգելու կամ որոնելու համար ընտրիր **`📊 SIRUS CLOUD BAZA`**։
     """)
 
 
 # ==========================================
-# 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ԱՎԵԼԱՑՈՒՄ) 📦 📦 📦
+# 2. 📦 📦 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ՄԻԱՅՆ ԱԴՄԻՆԻ ՀԱՄԱՐ) 📦 📦 📦
 # ==========================================
-elif st.session_state.page == "add_product":
+elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
     st.caption("✨ Մուտքագրիր նոր ստացված հեռախոսները բազմակի IMEI կոդերով")
     
@@ -137,13 +189,10 @@ elif st.session_state.page == "add_product":
 
 
 # ==========================================
-# 3. 📊 📊 📊 SIRUS CLOUD BAZA (ՄԻԱՅՆ ԲԱԶԱ) 📊 📊 📊
+# 3. 📊 📊 📊 SIRUS CLOUD BAZA (ՀԱՄԱՏԵՂ ԷՋ՝ ԱԴՄԻՆ ՈՒ ՅՈՒԶԵՐ) 📊 📊 📊
 # ==========================================
 elif st.session_state.page == "baza":
-    st.title("📊 SIRUS CLOUD BAZA")
     st.caption("✨ Առկա ապրանքների դիտում, որոնում և ֆիլտրում")
-    
-    st.markdown("---")
     
     read_response = requests.get(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=*&order=id.asc", headers=HEADERS)
 
@@ -152,8 +201,8 @@ elif st.session_state.page == "baza":
         if data:
             df = pd.DataFrame(data)
             
-            # 🔍 Որոնման Համակարգ
-            search_query = st.text_input("🔍 Արագ փնտրում (Մոդել, IMEI, Գույն, Մատակարար)...", placeholder="Գրիր այստեղ...")
+            # 🔍 Որոնման Համակարգ (Հասանելի է երկուսին էլ)
+            search_query = st.text_input("🔍 Արագ փնտրում (Մոդել, IMEI, Գույն, Մատակարար)...", placeholder="Գրիր այստեղ՝ ֆիլտրելու համար...")
             
             if search_query:
                 search_query = search_query.lower()
@@ -179,6 +228,7 @@ elif st.session_state.page == "baza":
                 }
                 df_clean = df_clean.rename(columns={k: v for k, v in rename_dict.items() if k in df_clean.columns})
                 
+                # Աղյուսակի ցուցադրում
                 st.dataframe(df_clean, use_container_width=True, hide_index=True)
                 st.caption(f"💡 Ընդհանուր բազայում կա {len(df_clean)} հեռախոս:")
             else:
