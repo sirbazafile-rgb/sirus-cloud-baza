@@ -193,7 +193,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 default_nshum = "ԿՐԿՆԱԿԻ ՎԵՐԱՆՈՐՈԳՈՒՄ. "
             nshumner = st.text_input("📌 Նշումներ", value=default_nshum)
 
-        if st.button("💾 ՊԱՀՊԱՆԵԼ ՎԵՐԱՆՈՐՈԳՈՒՄԸ ԲԱԶԱՅՈՒՄ", type="primary"):
+        if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
             remont_payload = {
                 "model": model_input, "imei": imei_input, "received_date": str(received_date),
                 "kampania": kampania if kampania else None, "xndir": xndir if xndir else None,
@@ -213,14 +213,32 @@ elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
     
+    # --- TAB 1: 📦 ԱՊՐԱՆՔՆԵՐ (Ընդհանուր Բազա) ---
     with tab1:
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             df = pd.DataFrame(res.json())
             st.dataframe(df, use_container_width=True, hide_index=True)
             
+            # 🔴 Ընդհանուր բազան լրիվ ջնջելու կոճակ (Մենք Admin-ի համար)
+            if st.session_state.role == "admin":
+                st.markdown("---")
+                st.subheader("🚨 🗑️ Ամբողջական Բազայի Մաքրում")
+                with st.expander("⚠️ Սեղմիր այստեղ, եթե ուզում ես ջնջել ՈՂՋ Ընդհանուր Բազան"):
+                    st.error("❗ ՈՒՇԱԴՐՈՒԹՅՈՒՆ. Այս գործողությունը կջնջի բոլոր ապրանքները բազայից ընդմիշտ։")
+                    del_prod_pass = st.text_input("🔒 Մուտքագրիր գաղտնաբառը (1989)", type="password", key="del_prod_pass")
+                    if st.button("💥 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"):
+                        if del_prod_pass == "1989":
+                            # Supabase-ից բոլոր տողերը ջնջելու հարցում
+                            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=gt.0", headers=HEADERS)
+                            if del_res.status_code in [200, 204]:
+                                st.success("🔥 Ընդհանուր բազան հաջողությամբ ամբողջությամբ մաքրվեց։")
+                                st.rerun()
+                            else: st.error("❌ Չհաջողվեց մաքրել բազան։")
+                        else: st.error("❌ Սխալ գաղտնաբառ։")
+            
+    # --- TAB 2: 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ ---
     with tab2:
-        # Կարդում ենք վերանորոգման տվյալները
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200:
             rem_data = res_rem.json()
@@ -232,51 +250,60 @@ elif st.session_state.page == "baza":
                 st.markdown("---")
                 st.subheader("🔄 Խմբագրել / Փոխել Վերանորոգման Կարգավիճակը")
                 
-                # Թույլ ենք տալիս ընտրել բազայում եղած IMEI-ներից մեկը
                 all_imeis = df_rem["imei"].unique().tolist()
                 selected_imei = st.selectbox("🎯 Ընտրիր այն հեռախոսի IMEI-ն, որի տվյալները ուզում ես փոխել", all_imeis)
                 
                 if selected_imei:
-                    # Գտնում ենք ընտրված հեռախոսի ընթացիկ տվյալները
                     current_row = df_rem[df_rem["imei"] == selected_imei].iloc[0]
-                    
                     st.info(f"📱 Ընտրված է՝ **{current_row['model']}**")
                     
                     col_edit1, col_edit2 = st.columns(2)
                     with col_edit1:
-                        # Ցույց է տալիս իր հին կարգավիճակը ու թույլ տալիս փոխել
                         statuses = ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"]
                         old_status_index = statuses.index(current_row["kargavichak"]) if current_row["kargavichak"] in statuses else 0
                         new_kargavichak = st.selectbox("🚦 Նոր Կարգավիճակ", statuses, index=old_status_index)
                         
-                        # Թարմացնել կատարված աշխատանքը
                         old_work = current_row["katarvac_ashxatanq"] if current_row["katarvac_ashxatanq"] else ""
                         new_work = st.text_area("🛠️ Կատարված Աշխատանք", value=old_work)
                     
                     with col_edit2:
-                        # Փոխել գումարը
                         old_gumar = int(current_row["gumar"]) if current_row["gumar"] else 0
                         new_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=old_gumar, step=1000, key="edit_gumar")
                         
-                        # Փոխել կամ ավելացնել նշումներ
                         old_nshum = current_row["nshumner"] if current_row["nshumner"] else ""
                         new_nshumner = st.text_input("📌 Նշումներ", value=old_nshum, key="edit_nshum")
 
                     if st.button("🚀 ԹԱՐՄԱՑՆԵԼ ՏՎՅԱԼՆԵՐԸ", type="primary"):
                         update_payload = {
-                            "kargavichak": new_kargavichak,
-                            "gumar": new_gumar,
-                            "katarvac_ashxatanq": new_work if new_work else None,
-                            "nshumner": new_nshumner if new_nshumner else None
+                            "kargavichak": new_kargavichak, "gumar": new_gumar,
+                            "katarvac_ashxatanq": new_work if new_work else None, "nshumner": new_nshumner if new_nshumner else None
                         }
-                        # Supabase PATCH հարցում՝ տվյալները թարմացնելու համար ըստ IMEI-ի
                         update_url = f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{selected_imei}"
                         res_update = requests.patch(update_url, headers=HEADERS, json=update_payload)
                         
                         if res_update.status_code in [200, 204]:
-                            st.success("🎉 Տվյալները հաջողությամբ թարմացվեցին բազայում։")
-                            st.rerun()
-                        else:
-                            st.error("❌ Չհաջողվեց թարմացնել բազան։")
+                            st.success("🎉 Տվյալները հաջողությամբ թարմացվեցին բազայում։"); st.rerun()
+                        else: st.error("❌ Չհաջողվեց թարմացնել բազան։")
+
+                # --- 🗑️ ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺՆԻՑ ՏՈՂ ՋՆՋԵԼ (Մենակ Admin-ի համար) ---
+                if st.session_state.role == "admin":
+                    st.markdown("---")
+                    st.subheader("🗑️ Ջնջել Տող Վերանորոգման Բազայից")
+                    col_del1, col_del2 = st.columns(2)
+                    with col_del1:
+                        delete_imei = st.selectbox("❌ Ընտրիր ջնջվող հեռախոսի IMEI-ն", all_imeis, key="del_remont_imei")
+                        del_remont_pass = st.text_input("🔒 Մուտքագրիր գաղտնաբառը (89)", type="password", key="del_remont_pass")
+                    with col_del2:
+                        st.write("")
+                        st.write("")
+                        if st.button("🗑️ ՋՆՋԵԼ ՏՈՂԸ", type="secondary"):
+                            if del_remont_pass == "89":
+                                del_rem_url = f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{delete_imei}"
+                                res_del_rem = requests.delete(del_rem_url, headers=HEADERS)
+                                if res_del_rem.status_code in [200, 204]:
+                                    st.success(f"🎉 IMEI {delete_imei}-ով տողը հաջողությամբ ջնջվեց։")
+                                    st.rerun()
+                                else: st.error("❌ Չհաջողվեց ջնջել տողը։")
+                            else: st.error("❌ Սխալ գաղտնաբառ։")
             else:
                 st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
