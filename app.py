@@ -84,7 +84,11 @@ if st.session_state.role == "admin":
         if st.button("📊 SIRUS CLOUD BAZA", key="btn_baza"):
             st.session_state.page = "baza"
             st.rerun()
-    with menu_col4:
+   with menu_col4: # Կամ որ սյունակում որ ուզես
+    if st.button("🔧 ՎԵՐԱՆՈՐՈԳՈՒՄ", key="btn_remont"):
+        st.session_state.page = "remont"
+        st.rerun()
+    with menu_col5:
         if st.button("🚪 ԵԼՔ", key="btn_logout"):
             st.session_state.authenticated = False
             st.session_state.role = None
