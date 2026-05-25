@@ -53,7 +53,7 @@ st.markdown("""
     .table-row { background-color: #d7fc00; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     .link-btn button { background-color: transparent !important; color: #ff4b4b !important; border: none !important; text-decoration: underline !important; font-size: 15px !important; text-align: center !important; }
     /* Հաշվիչ տուփերի սիրունացում */
-    div[data-testid="stMetric"] { background-color: #262730; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
+    div[data-testid="stMetric"] { background-color: #e0a96e; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
