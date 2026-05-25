@@ -120,26 +120,20 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
     st.title("🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
     
-    # ՔԱՅԼ 1: IMEI Որոնում
     st.subheader("🔍 ՔԱՅԼ 1: Փնտրել Հեռախոսը IMEI-ով")
     search_imei = st.text_input("🔢 Գրիր կամ սկանավորիր IMEI-ն", placeholder="Մուտքագրիր IMEI...")
     
     if st.button("🔍 ՓՆՏՐԵԼ ԲԱԶԱՅՈՒՄ", type="secondary"):
         if search_imei:
-            # Առաջինը ստուգում ենք՝ արդյոք այս IMEI-ն արդեն եղել է վերանորոգման մեջ
             remont_check_url = f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{search_imei}"
             res_remont_check = requests.get(remont_check_url, headers=HEADERS)
             
-            # Եթե remont աղյուսակում արդեն կա այս IMEI-ն, գրանցում ենք, որ զգուշացում տանք
-            has_been_in_remont = False
             if res_remont_check.status_code == 200 and len(res_remont_check.json()) > 0:
-                has_been_in_remont = True
                 times_in_remont = len(res_remont_check.json())
                 st.session_state.remont_warning_msg = f"⚠️ ՈՒՇԱԴՐՈՒԹՅՈՒՆ. Այս հեռախոսը արդեն {times_in_remont} անգամ եղել է վերանորոգման բաժնում։ Խնդրում ենք նշումների դաշտում նշել մանրամասները:"
             else:
                 st.session_state.remont_warning_msg = None
 
-            # Հիմա փնտրում ենք հիմնական ապրանքների բազայում
             check_url = f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}"
             res = requests.get(check_url, headers=HEADERS)
             if res.status_code == 200 and len(res.json()) > 0:
@@ -149,31 +143,24 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 st.session_state.found_product = None
                 st.session_state.remont_step2 = False
                 st.error("❌ Այս IMEI-ով ապրանք բազայում չգտնվեց։")
-        else:
-            st.warning("⚠️ Խնդրում ենք մուտքագրել IMEI:")
+        else: st.warning("⚠️ Խնդրում ենք մուտքագրել IMEI:")
 
-    # Եթե հեռախոսը գտնվել է
     if st.session_state.found_product:
         prod = st.session_state.found_product
         st.markdown("### 📱 Գտնված Հեռախոսի Տվյալները")
         
         info_df = pd.DataFrame([{
-            "Մոդել": prod.get("model"),
-            "Հիշողություն": prod.get("storage"),
-            "Գույն": prod.get("color"),
-            "Ձեռքբերման Օր": prod.get("buy_date"),
-            "Մատակարար": prod.get("matakarar")
+            "Մոդել": prod.get("model"), "Հիշողություն": prod.get("storage"), "Գույն": prod.get("color"),
+            "Ձեռքբերման Օր": prod.get("buy_date"), "Մատակարար": prod.get("matakarar")
         }])
         st.dataframe(info_df, use_container_width=True, hide_index=True)
         
-        # Եթե վերևում պարզվեց, որ 2-րդ անգամ է գալիս՝ ցույց ենք տալիս զգուշացումը
         if "remont_warning_msg" in st.session_state and st.session_state.remont_warning_msg:
             st.warning(st.session_state.remont_warning_msg)
             
         if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՎԵՐԱՆՈՐՈԳՈՒՄ ԲԱԺՆՈՒՄ", type="primary"):
             st.session_state.remont_step2 = True
 
-    # ՔԱՅԼ 2: Դաշտերի լրացում
     if st.session_state.remont_step2 and st.session_state.found_product:
         st.markdown("---")
         st.subheader("📝 ՔԱՅԼ 2: Լրացնել Վերանորոգման Տվյալները")
@@ -186,10 +173,10 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
             model_input = st.text_input("📝 Մոդել (Ավտոմատ)", value=full_model_name)
             imei_input = st.text_input("🔢 IMEI (Ավտոմատ)", value=prod.get("imei"))
             received_date = st.date_input("📅 Ստացման Ամսաթիվ", datetime.now())
-            kampania = st.text_input("🏢 Կամպանիա (Ումից է ստացվել)", placeholder="Գրիր կամպանիայի անունը...")
+            kampania = st.text_input("🏢 Կամպանիա (Ումից է ստացվել)")
             xndir = st.text_area("❌ Խնդիր (Ինչ խնդրով է եկել)")
         with col2:
-            komplekt = st.text_input("📦 Կոմպլեկտ", placeholder="օր. Տուփ, Լիցքավորիչ...")
+            komplekt = st.text_input("📦 Կոմպլեկտ")
             gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=0, step=1000)
             katarvac_ashxatanq = st.text_area("🛠️ Կատարված Աշխատանք")
             
@@ -197,12 +184,10 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
             if buy_date_str:
                 parsed_buy_date = datetime.strptime(buy_date_str, "%Y-%m-%d").date()
                 dzerq_date = st.date_input("📅 Ապրանքի Ձեռքբերման Ամսաթիվ (Ավտոմատ)", parsed_buy_date)
-            else:
-                dzerq_date = st.date_input("📅 Ապրանքի Ձեռքբերման Ամսաթիվ", datetime.now())
+            else: dzerq_date = st.date_input("📅 Ապրանքի Ձեռքբերման Ամսաթիվ", datetime.now())
                 
             kargavichak = st.selectbox("🚦 Կարգավիճակ", ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"])
             
-            # Եթե 2-րդ անգամ է, նշումների մեջ ավտոմատ տեքստ ենք դնում, որ հիշես լրացնել
             default_nshum = ""
             if "remont_warning_msg" in st.session_state and st.session_state.remont_warning_msg:
                 default_nshum = "ԿՐԿՆԱԿԻ ՎԵՐԱՆՈՐՈԳՈՒՄ. "
@@ -220,11 +205,8 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
             if res_remont.status_code in [200, 201]:
                 st.success("🎉 Վերանորոգման տվյալները հաջողությամբ գրանցվեցին բազայում։")
                 st.balloons()
-                st.session_state.remont_step2 = False
-                st.session_state.found_product = None
-                st.session_state.remont_warning_msg = None
-            else:
-                st.error("❌ Սխալ՝ բազայում չհաջողվեց պահպանել։")
+                st.session_state.remont_step2 = False; st.session_state.found_product = None
+            else: st.error("❌ Սխալ՝ բազայում չհաջողվեց պահպանել։")
 
 # --- 4. 📊 SIRUS CLOUD BAZA ---
 elif st.session_state.page == "baza":
@@ -238,11 +220,63 @@ elif st.session_state.page == "baza":
             st.dataframe(df, use_container_width=True, hide_index=True)
             
     with tab2:
+        # Կարդում ենք վերանորոգման տվյալները
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200:
             rem_data = res_rem.json()
             if rem_data:
                 df_rem = pd.DataFrame(rem_data)
                 st.dataframe(df_rem, use_container_width=True, hide_index=True)
+                
+                # --- 🔄 ՏՎՅԱԼՆԵՐԻ ՓՈՓՈԽՄԱՆ (ԹԱՐՄԱՑՄԱՆ) ԲԱԺԻՆ ---
+                st.markdown("---")
+                st.subheader("🔄 Խմբագրել / Փոխել Վերանորոգման Կարգավիճակը")
+                
+                # Թույլ ենք տալիս ընտրել բազայում եղած IMEI-ներից մեկը
+                all_imeis = df_rem["imei"].unique().tolist()
+                selected_imei = st.selectbox("🎯 Ընտրիր այն հեռախոսի IMEI-ն, որի տվյալները ուզում ես փոխել", all_imeis)
+                
+                if selected_imei:
+                    # Գտնում ենք ընտրված հեռախոսի ընթացիկ տվյալները
+                    current_row = df_rem[df_rem["imei"] == selected_imei].iloc[0]
+                    
+                    st.info(f"📱 Ընտրված է՝ **{current_row['model']}**")
+                    
+                    col_edit1, col_edit2 = st.columns(2)
+                    with col_edit1:
+                        # Ցույց է տալիս իր հին կարգավիճակը ու թույլ տալիս փոխել
+                        statuses = ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"]
+                        old_status_index = statuses.index(current_row["kargavichak"]) if current_row["kargavichak"] in statuses else 0
+                        new_kargavichak = st.selectbox("🚦 Նոր Կարգավիճակ", statuses, index=old_status_index)
+                        
+                        # Թարմացնել կատարված աշխատանքը
+                        old_work = current_row["katarvac_ashxatanq"] if current_row["katarvac_ashxatanq"] else ""
+                        new_work = st.text_area("🛠️ Կատարված Աշխատանք", value=old_work)
+                    
+                    with col_edit2:
+                        # Փոխել գումարը
+                        old_gumar = int(current_row["gumar"]) if current_row["gumar"] else 0
+                        new_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=old_gumar, step=1000, key="edit_gumar")
+                        
+                        # Փոխել կամ ավելացնել նշումներ
+                        old_nshum = current_row["nshumner"] if current_row["nshumner"] else ""
+                        new_nshumner = st.text_input("📌 Նշումներ", value=old_nshum, key="edit_nshum")
+
+                    if st.button("🚀 ԹԱՐՄԱՑՆԵԼ ՏՎՅԱԼՆԵՐԸ", type="primary"):
+                        update_payload = {
+                            "kargavichak": new_kargavichak,
+                            "gumar": new_gumar,
+                            "katarvac_ashxatanq": new_work if new_work else None,
+                            "nshumner": new_nshumner if new_nshumner else None
+                        }
+                        # Supabase PATCH հարցում՝ տվյալները թարմացնելու համար ըստ IMEI-ի
+                        update_url = f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{selected_imei}"
+                        res_update = requests.patch(update_url, headers=HEADERS, json=update_payload)
+                        
+                        if res_update.status_code in [200, 204]:
+                            st.success("🎉 Տվյալները հաջողությամբ թարմացվեցին բազայում։")
+                            st.rerun()
+                        else:
+                            st.error("❌ Չհաջողվեց թարմացնել բազան։")
             else:
                 st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
