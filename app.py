@@ -166,7 +166,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 dzerq_date = st.date_input("📅 Ապրանքի Ձեռքբերման Ամսաթիվ (Ավտոմատ)", parsed_buy_date)
             else: dzerq_date = st.date_input("📅 Ապրանքի Ձեռքբերման Ամսաթիվ", datetime.now())
                 
-            kargavichak = st.selectbox("🚦Կարգավիճակ", ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"])
+            kargavichak = st.selectbox("🚦Ստատուս", ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"])
             
             default_nshum = "ԿՐԿՆԱԿԻ ՎԵՐԱՆՈՐՈԳՈՒՄ. " if "remont_warning_msg" in st.session_state and st.session_state.remont_warning_msg else ""
             nshumner = st.text_input("📌 Նշումներ", value=default_nshum)
