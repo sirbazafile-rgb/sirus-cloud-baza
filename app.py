@@ -214,7 +214,7 @@ elif st.session_state.page == "baza":
             rem_list = res_rem.json()
             
             # 9 Սյունակ Header-ի համար (Մոդել, IMEI, Կամպանիա, Խնդիր ամեն ինչ առանձին)
-            h_cols = st.columns([1.5, 1.5, 1.2, 1.8, 1, 1.5, 1.2, 1.8, 0.8])
+            h_cols = st.columns([1.5, 1.5, 1.3, 1.8, 1, 1.5, 1.2, 1.8, 0.8])
             h_cols[0].markdown("<div class='table-header'>📱 Մոդել</div>", unsafe_allow_html=True)
             h_cols[1].markdown("<div class='table-header'>🔢 IMEI</div>", unsafe_allow_html=True)
             h_cols[2].markdown("<div class='table-header'>🏢 Կամպանիա</div>", unsafe_allow_html=True)
