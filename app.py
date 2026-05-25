@@ -50,7 +50,7 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .table-header { background-color: #262730; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
-    .table-row { background-color: #1E1E24;padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px;border-radius: 4px; }
+    .table-row { background-color: #1E1E24;padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px;}
     </style>
 """, unsafe_allow_html=True)
 
