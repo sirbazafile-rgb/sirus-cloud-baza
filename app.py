@@ -49,7 +49,7 @@ st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
-    .table-header { background-color: #03fcf8; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 12px; }
+    .table-header { background-color: #03fcf8; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
     .table-row {padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px;}
     </style>
 """, unsafe_allow_html=True)
@@ -221,7 +221,7 @@ elif st.session_state.page == "baza":
             h_cols[3].markdown("<div class='table-header'>❌ Խնդիր</div>", unsafe_allow_html=True)
             h_cols[4].markdown("<div class='table-header'>💵 Գումար</div>", unsafe_allow_html=True)
             h_cols[5].markdown("<div class='table-header'>📅 Ամսաթվեր</div>", unsafe_allow_html=True)
-            h_cols[6].markdown("<div class='table-header'>🚦 Կարգավիճակ</div>", unsafe_allow_html=True)
+            h_cols[6].markdown("<div class='table-header'>🚦 Ստատուս</div>", unsafe_allow_html=True)
             h_cols[7].markdown("<div class='table-header'>📌 Նշումներ</div>", unsafe_allow_html=True)
             h_cols[8].markdown("<div class='table-header'>⚙️</div>", unsafe_allow_html=True)
             
