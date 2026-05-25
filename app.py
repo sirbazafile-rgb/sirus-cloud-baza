@@ -207,4 +207,85 @@ elif st.session_state.page == "baza":
                                 st.success("🔥 Բազան մաքրվեց։"); st.rerun()
                         else: st.error("❌ Սխալ գաղտնաբառ։")
             
-    # --- TAB 2: 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ (ՔՈ ՈՒԶԱԾ Ն
+    # --- TAB 2: 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ (ՔՈ ՈՒԶԱԾ ՆՈՐ ԴԻԶԱՅՆԸ) ---
+    with tab2:
+        res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
+        if res_rem.status_code == 200 and res_rem.json():
+            rem_list = res_rem.json()
+            
+            # Սարքում ենք Custom Աղյուսակի Գլխամաս (Header)
+            h_col1, h_col2, h_col3, h_col4, h_col5, h_col6, h_col7 = st.columns([2, 2, 1.5, 1.5, 1.5, 2, 1])
+            h_col1.markdown("<div class='table-header'>Մոդել / IMEI</div>", unsafe_allow_html=True)
+            h_col2.markdown("<div class='table-header'>Կամպանիա / Խնդիր</div>", unsafe_allow_html=True)
+            h_col3.markdown("<div class='table-header'>Գումար</div>", unsafe_allow_html=True)
+            h_col4.markdown("<div class='table-header'>Ստացման / Ձեռքբերման</div>", unsafe_allow_html=True)
+            h_col5.markdown("<div class='table-header'>Կարգավիճակ</div>", unsafe_allow_html=True)
+            h_col6.markdown("<div class='table-header'>Նշումներ</div>", unsafe_allow_html=True)
+            h_col7.markdown("<div class='table-header'>Գործողություն</div>", unsafe_allow_html=True)
+            
+            # Լցնում ենք տվյալները տող առ տող
+            for row in rem_list:
+                r_col1, r_col2, r_col3, r_col4, r_col5, r_col6, r_col7 = st.columns([2, 2, 1.5, 1.5, 1.5, 2, 1])
+                
+                r_col1.markdown(f"<div class='table-row'><b>{row['model']}</b><br><small>{row['imei']}</small></div>", unsafe_allow_html=True)
+                r_col2.markdown(f"<div class='table-row'>{row['kampania'] if row['kampania'] else ''}<br><small>{row['xndir'] if row['xndir'] else ''}</small></div>", unsafe_allow_html=True)
+                r_col3.markdown(f"<div class='table-row'>{row['gumar']} 💰</div>", unsafe_allow_html=True)
+                r_col4.markdown(f"<div class='table-row'><small>Ստացված: {row['received_date']}<br>Գնված: {row['dzerq_berman_date']}</small></div>", unsafe_allow_html=True)
+                
+                # Կարգավիճակի գունավորում
+                status_color = "#FFA500" if row['kargavichak'] == "Վերանորոգման է" else "#00FF00" if row['kargavichak'] == "Պատրաստ է" else "#999999"
+                r_col5.markdown(f"<div class='table-row' style='color:{status_color}; font-weight:bold;'>{row['kargavichak']}</div>", unsafe_allow_html=True)
+                r_col6.markdown(f"<div class='table-row'>{row['nshumner'] if row['nshumner'] else ''}</div>", unsafe_allow_html=True)
+                
+                # 🛠️ ԻԿՈՆԿԱՆԵՐՈՎ ԿՈՃԱԿՆԵՐԸ՝ ՆՇՈՒՄՆԵՐԻ ԿՈՂՔԻ ՍՅՈՒՆԱԿՈՒՄ
+                with r_col7:
+                    btn_col1, btn_col2 = st.columns(2)
+                    # 📝 Խմբագրելու իկոնկա
+                    if btn_col1.button("📝", key=f"edit_{row['imei']}", help="Խմբագրել"):
+                        st.session_state.edit_imei = row['imei']
+                        st.session_state.delete_imei = None
+                        st.rerun()
+                    # 🗑️ Ջնջելու իկոնկա (Մենակ Admin-ին է երևում)
+                    if st.session_state.role == "admin":
+                        if btn_col2.button("🗑️", key=f"del_{row['imei']}", help="Ջնջել"):
+                            st.session_state.delete_imei = row['imei']
+                            st.session_state.edit_imei = None
+                            st.rerun()
+
+            # --- 📝 ԽՄԲԱԳՐՄԱՆ ՓՈՔՐԻԿ ՊԱՏՈՒՀԱՆ (Երբ սեղմվել է 📝 նշանը) ---
+            if st.session_state.edit_imei:
+                st.markdown("---")
+                edit_row = next(item for item in rem_list if item["imei"] == st.session_state.edit_imei)
+                st.subheader(f"📝 Խմբագրել՝ {edit_row['model']} ({st.session_state.edit_imei})")
+                
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    statuses = ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"]
+                    old_idx = statuses.index(edit_row["kargavichak"]) if edit_row["kargavichak"] in statuses else 0
+                    up_kargavichak = st.selectbox("🚦 Կարգավիճակ", statuses, index=old_idx)
+                    up_work = st.text_area("🛠️ Կատարված Աշխատանք", value=edit_row["katarvac_ashxatanq"] if edit_row["katarvac_ashxatanq"] else "")
+                with col_e2:
+                    up_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=int(edit_row["gumar"]), step=1000)
+                    up_nshum = st.text_input("📌 Նշումներ", value=edit_row["nshumner"] if edit_row["nshumner"] else "")
+                
+                e_b1, e_b2 = st.columns([1, 5])
+                if e_b1.button("🚀 ԹԱՐՄԱՑՆԵԼ", type="primary"):
+                    payload = {"kargavichak": up_kargavichak, "gumar": up_gumar, "katarvac_ashxatanq": up_work, "nshumner": up_nshum}
+                    if requests.patch(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{st.session_state.edit_imei}", headers=HEADERS, json=payload).status_code in [200, 204]:
+                        st.success("🎉 Թարմացվեց։"); st.session_state.edit_imei = None; st.rerun()
+                if e_b2.button("❌ Չեղարկել"): st.session_state.edit_imei = None; st.rerun()
+
+            # --- 🗑️ ՋՆՋՄԱՆ ՊԱՏՈՒՀԱՆ՝ ՊԱՍՎՈՐՈՎ (Երբ սեղմվել է 🗑️ նշանը) ---
+            if st.session_state.delete_imei:
+                st.markdown("---")
+                st.error(f"⚠️ Դուք ուզում ես ջնջել IMEI `{st.session_state.delete_imei}`-ով տողը վերանորոգման բազայից։")
+                del_pass = st.text_input("🔒 Մուտքագրիր գաղտնաբառը (89)", type="password")
+                
+                d_b1, d_b2 = st.columns([1, 5])
+                if d_b1.button("💥 ՀԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
+                    if del_pass == "89":
+                        if requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{st.session_state.delete_imei}", headers=HEADERS).status_code in [200, 204]:
+                            st.success("🎉 Տողը ջնջվեց։"); st.session_state.delete_imei = None; st.rerun()
+                    else: st.error("❌ Սխալ գաղտնաբառ։")
+                if d_b2.button("❌ Չեղարկել"): st.session_state.delete_imei = None; st.rerun()
+        else: st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
