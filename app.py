@@ -52,6 +52,8 @@ st.markdown("""
     .table-header { background-color: #262730; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
     .table-row { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     .link-btn button { background-color: transparent !important; color: #ff4b4b !important; border: none !important; text-decoration: underline !important; font-size: 15px !important; text-align: center !important; }
+    /* Հաշվիչ տուփերի սիրունացում */
+    div[data-testid="stMetric"] { background-color: #262730; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -82,7 +84,7 @@ def show_details_dialog(row):
         st.markdown(f"🏢 **Կամպանիա:** {row['kampania'] if row['kampania'] else '֊'}")
         st.markdown(f"📅 **Ստացման Ամսաթիվ:** {row['received_date']}")
         st.markdown(f"📅 **Ձեռքբերման Ամսաթիվ:** {row['dzerq_berman_date'] if row['dzerq_berman_date'] else '֊'}")
-        st.markdown(f"📦 **Կոմպլեկտ:** {row['komplekt'] if row['komplekt'] else '֊'}")
+        st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`") # Օգտագործում ենք komplekt-ը վճարման տեսակի համար
     with col_d2:
         st.markdown(f"💵 **Գումար:** {row['gumar']} 💰")
         status_color = "#FFA500" if row['kargavichak'] == "Վերանորոգման է" else "#00FF00" if row['kargavichak'] == "Պատրաստ է" else "#999999"
@@ -179,7 +181,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
             kampania = st.text_input("🏢 Կամպանիա (Ումից է ստացվել)")
             xndir = st.text_area("❌ Խնդիր (Ինչ խնդրով է եկել)")
         with col2:
-            komplekt = st.text_input("📦 Կոմպլեկտ")
+            vcharman_tesak = st.selectbox("💳 ՎՃԱՐՄԱՆ ՏԵՍԱԿ", ["Կանխիկ", "Անկանխիկ"]) # 👈 ՔՈ ՈՒԶԱԾ ԴԱՇՏԸ
             gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=0, step=1000)
             katarvac_ashxatanq = st.text_area("🛠️ Կատարված Աշխատանք")
             buy_date_str = prod.get("buy_date")
@@ -190,7 +192,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
         if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
             remont_payload = {
                 "model": model_input, "imei": imei_input, "received_date": str(received_date), "kampania": kampania if kampania else None,
-                "xndir": xndir if xndir else None, "gumar": gumar, "komplekt": komplekt if komplekt else None,
+                "xndir": xndir if xndir else None, "gumar": gumar, "komplekt": vcharman_tesak, # Komplekt-ի մեջ գրանցում ենք Կանխիկ/Անկանխիկ
                 "katarvac_ashxatanq": katarvac_ashxatanq if katarvac_ashxatanq else None, "dzerq_berman_date": str(dzerq_date), "kargavichak": kargavichak, "nshumner": nshumner if nshumner else None
             }
             if requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload).status_code in [200, 201]:
@@ -207,26 +209,37 @@ elif st.session_state.page == "baza":
         if res.status_code == 200 and res.json():
             st.dataframe(pd.DataFrame(res.json()), use_container_width=True, hide_index=True)
 
-    # --- TAB 2: 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ (ՔՈ ՈՒԶԱԾ ՕՊՏԻՄԱԼ ՏԵՍՔԸ) ---
+    # --- TAB 2: 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ ---
     with tab2:
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
             rem_list = res_rem.json()
             
-            # Աղյուսակի 7 Գլխավոր Սյուները (Մաքուր ու թեթև)
-            h_cols = st.columns([2.2, 1.6, 1.4, 1.2, 1.4, 1.4, 0.8])
+            # --- 🧮 💥 ՀԱՇՎԻՉՆԵՐԻ ԲԱԺԻՆ (💥 TOTAL COUNTER) ---
+            total_gumar = sum(int(item['gumar']) for item in rem_list)
+            total_cash = sum(int(item['gumar']) for item in rem_list if item.get('komplekt') == "Կանխիկ" or item.get('komplekt') is None)
+            total_card = sum(int(item['gumar']) for item in rem_list if item.get('komplekt') == "Անկանխիկ")
+            
+            m_col1, m_col2, m_col3 = st.columns(3)
+            m_col1.metric("💰 Ընդհանուր Շրջանառություն", f"{total_gumar:,} Դրամ")
+            m_col2.metric("💵 Ընդհանուր Կանխիկ", f"{total_cash:,} Դրամ")
+            m_col3.metric("💳 Ընդհանուր Անկանխիկ", f"{total_card:,} Դրամ")
+            st.markdown("---")
+            
+            # Աղյուսակի 7 Գլխավոր Սյուները
+            h_cols = st.columns([2.2, 1.6, 1.4, 1.4, 1.4, 1.4, 0.8])
             h_cols[0].markdown("<div class='table-header'>📱 Մոդել (Սեղմիր՝ տեսնելու)</div>", unsafe_allow_html=True)
             h_cols[1].markdown("<div class='table-header'>🔢 IMEI</div>", unsafe_allow_html=True)
             h_cols[2].markdown("<div class='table-header'>🏢 Կամպանիա</div>", unsafe_allow_html=True)
-            h_cols[3].markdown("<div class='table-header'>💵 Գումար</div>", unsafe_allow_html=True)
+            h_cols[3].markdown("<div class='table-header'>💵 Գումար (Տեսակ)</div>", unsafe_allow_html=True) # Թարմացված Header
             h_cols[4].markdown("<div class='table-header'>📅 Ամսաթիվ</div>", unsafe_allow_html=True)
             h_cols[5].markdown("<div class='table-header'>🚦 Կարգավիճակ</div>", unsafe_allow_html=True)
             h_cols[6].markdown("<div class='table-header'>⚙️</div>", unsafe_allow_html=True)
             
             for row in rem_list:
-                r_cols = st.columns([2.2, 1.6, 1.4, 1.2, 1.4, 1.4, 0.8])
+                r_cols = st.columns([2.2, 1.6, 1.4, 1.4, 1.4, 1.4, 0.8])
                 
-                # 📱 ՄՈԴԵԼԸ ԴԱՌՆՈՒՄ Է ԿՈՃԱԿ՝ ՍԵՂՄԵԼԻՍ ԲԱՑՈՒՄ Է ԱՄԲՈՂՋ ԻՆՖՈՐՄԱՑԻԱՆ
+                # 📱 Մոդել կոճակ
                 with r_cols[0]:
                     st.markdown("<div class='link-btn'>", unsafe_allow_html=True)
                     if st.button(f"🔎 {row['model']}", key=f"view_{row['imei']}", help="Տեսնել ամբողջական տվյալները"):
@@ -235,7 +248,12 @@ elif st.session_state.page == "baza":
                 
                 r_cols[1].markdown(f"<div class='table-row'><code>{row['imei']}</code></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='table-row'>{row['kampania'] if row['kampania'] else '֊'}</div>", unsafe_allow_html=True)
-                r_cols[3].markdown(f"<div class='table-row'>{row['gumar']} 💰</div>", unsafe_allow_html=True)
+                
+                # 💵 Գումար + Տեսակ (Կանխիկ/Անկանխիկ)
+                v_type = row.get('komplekt') if row.get('komplekt') else "Կանխիկ"
+                type_emoji = "💵" if v_type == "Կանխիկ" else "💳"
+                r_cols[3].markdown(f"<div class='table-row'><b>{row['gumar']} 💰</b><br><small style='color:#aaa;'>{type_emoji} {v_type}</small></div>", unsafe_allow_html=True)
+                
                 r_cols[4].markdown(f"<div class='table-row'>{row['received_date']}</div>", unsafe_allow_html=True)
                 
                 status_color = "#FFA500" if row['kargavichak'] == "Վերանորոգման է" else "#00FF00" if row['kargavichak'] == "Պատրաստ է" else "#999999"
@@ -260,11 +278,13 @@ elif st.session_state.page == "baza":
                     up_kargavichak = st.selectbox("🚦 Կարգավիճակ", statuses, index=statuses.index(edit_row["kargavichak"]) if edit_row["kargavichak"] in statuses else 0)
                     up_work = st.text_area("🛠️ Կատարված Աշխատանք", value=edit_row["katarvac_ashxatanq"] if edit_row["katarvac_ashxatanq"] else "")
                 with col_e2:
+                    current_pay_type = edit_row.get("komplekt") if edit_row.get("komplekt") else "Կանխիկ"
+                    up_pay_type = st.selectbox("💳 Վճարման Տեսակ", ["Կանխիկ", "Անկանխիկ"], index=0 if current_pay_type == "Կանխիկ" else 1)
                     up_gumar = st.number_input("💵 Գումար", min_value=0, value=int(edit_row["gumar"]), step=1000)
                     up_nshum = st.text_input("📌 Նշումներ", value=edit_row["nshumner"] if edit_row["nshumner"] else "")
                 
                 if st.button("🚀 ԹԱՐՄԱՑՆԵԼ", type="primary"):
-                    payload = {"kargavichak": up_kargavichak, "gumar": up_gumar, "katarvac_ashxatanq": up_work, "nshumner": up_nshum}
+                    payload = {"kargavichak": up_kargavichak, "gumar": up_gumar, "komplekt": up_pay_type, "katarvac_ashxatanq": up_work, "nshumner": up_nshum}
                     if requests.patch(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{st.session_state.edit_imei}", headers=HEADERS, json=payload).status_code in [200, 204]:
                         st.session_state.edit_imei = None; st.rerun()
                 if st.button("❌ Չեղարկել"): st.session_state.edit_imei = None; st.rerun()
