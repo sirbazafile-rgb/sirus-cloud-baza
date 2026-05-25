@@ -49,8 +49,8 @@ st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
-    .table-header { background-color: #0cf2ee; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
-    .table-row { background-color: #d7fc00; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-header { background-color: #05ebdb; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
+    .table-row { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     .link-btn button { background-color: transparent !important; color: #ff4b4b !important; border: none !important; text-decoration: underline !important; font-size: 15px !important; text-align: center !important; }
     /* Հաշվիչ տուփերի սիրունացում */
     div[data-testid="stMetric"] { background-color: #e0a96e; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
@@ -84,7 +84,7 @@ def show_details_dialog(row):
         st.markdown(f"🏢 **Կամպանիա:** {row['kampania'] if row['kampania'] else '֊'}")
         st.markdown(f"📅 **Ստացման Ամսաթիվ:** {row['received_date']}")
         st.markdown(f"📅 **Ձեռքբերման Ամսաթիվ:** {row['dzerq_berman_date'] if row['dzerq_berman_date'] else '֊'}")
-        st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`") # Օգտագործում ենք komplekt-ը վճարման տեսակի համար
+        st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`")
     with col_d2:
         st.markdown(f"💵 **Գումար:** {row['gumar']} 💰")
         status_color = "#FFA500" if row['kargavichak'] == "Վերանորոգման է" else "#00FF00" if row['kargavichak'] == "Պատրաստ է" else "#999999"
@@ -181,7 +181,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
             kampania = st.text_input("🏢 Կամպանիա (Ումից է ստացվել)")
             xndir = st.text_area("❌ Խնդիր (Ինչ խնդրով է եկել)")
         with col2:
-            vcharman_tesak = st.selectbox("💳 ՎՃԱՐՄԱՆ ՏԵՍԱԿ", ["Կանխիկ", "Անկանխիկ"]) # 👈 ՔՈ ՈՒԶԱԾ ԴԱՇՏԸ
+            vcharman_tesak = st.selectbox("💳 ՎՃԱՐՄԱՆ ՏԵՍԱԿ", ["Կանխիկ", "Անկանխիկ"])
             gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=0, step=1000)
             katarvac_ashxatanq = st.text_area("🛠️ Կատարված Աշխատանք")
             buy_date_str = prod.get("buy_date")
@@ -192,7 +192,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
         if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
             remont_payload = {
                 "model": model_input, "imei": imei_input, "received_date": str(received_date), "kampania": kampania if kampania else None,
-                "xndir": xndir if xndir else None, "gumar": gumar, "komplekt": vcharman_tesak, # Komplekt-ի մեջ գրանցում ենք Կանխիկ/Անկանխիկ
+                "xndir": xndir if xndir else None, "gumar": gumar, "komplekt": vcharman_tesak,
                 "katarvac_ashxatanq": katarvac_ashxatanq if katarvac_ashxatanq else None, "dzerq_berman_date": str(dzerq_date), "kargavichak": kargavichak, "nshumner": nshumner if nshumner else None
             }
             if requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload).status_code in [200, 201]:
@@ -215,7 +215,7 @@ elif st.session_state.page == "baza":
         if res_rem.status_code == 200 and res_rem.json():
             rem_list = res_rem.json()
             
-            # --- 🧮 💥 ՀԱՇՎԻՉՆԵՐԻ ԲԱԺԻՆ (💥 TOTAL COUNTER) ---
+            # --- 🧮 ՀԱՇՎԻՉՆԵՐԻ ԲԱԺԻՆ ---
             total_gumar = sum(int(item['gumar']) for item in rem_list)
             total_cash = sum(int(item['gumar']) for item in rem_list if item.get('komplekt') == "Կանխիկ" or item.get('komplekt') is None)
             total_card = sum(int(item['gumar']) for item in rem_list if item.get('komplekt') == "Անկանխիկ")
@@ -224,6 +224,28 @@ elif st.session_state.page == "baza":
             m_col1.metric("💰 Ընդհանուր Շրջանառություն", f"{total_gumar:,} Դրամ")
             m_col2.metric("💵 Ընդհանուր Կանխիկ", f"{total_cash:,} Դրամ")
             m_col3.metric("💳 Ընդհանուր Անկանխիկ", f"{total_card:,} Դրամ")
+            
+            st.markdown(" ")
+            
+            # --- 📥 EXCEL / CSV ՏՊԵԼՈՒ ԿՈՃԱԿ ---
+            df_remont = pd.DataFrame(rem_list)
+            df_excel = df_remont.rename(columns={
+                'model': 'Մոդել', 'imei': 'IMEI', 'kampania': 'Կամպանիա', 'gumar': 'Գումար (Դրամ)',
+                'komplekt': 'Վճարման Տեսակ', 'received_date': 'Ստացման Ամսաթիվ', 'xndir': 'Խնդիր',
+                'katarvac_ashxatanq': 'Կատարված Աշխատանք', 'dzerq_berman_date': 'Ձեռքբերման Ամսաթիվ',
+                'kargavichak': 'Կարգավիճակ', 'nshumner': 'Նշումներ'
+            })
+            if 'id' in df_excel.columns: df_excel = df_excel.drop(columns=['id'])
+            csv_data = df_excel.to_csv(index=False).encode('utf-8-sig')
+            
+            st.download_button(
+                label="📥 ՏՊԵԼ / ՆԵՐԲԵՌՆԵԼ EXCEL ՖԱՅԼԸ",
+                data=csv_data,
+                file_name=f"remont_baza_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                mime="text/csv",
+                type="secondary"
+            )
+            
             st.markdown("---")
             
             # Աղյուսակի 7 Գլխավոր Սյուները
@@ -231,7 +253,7 @@ elif st.session_state.page == "baza":
             h_cols[0].markdown("<div class='table-header'>📱 Մոդել (Սեղմիր՝ տեսնելու)</div>", unsafe_allow_html=True)
             h_cols[1].markdown("<div class='table-header'>🔢 IMEI</div>", unsafe_allow_html=True)
             h_cols[2].markdown("<div class='table-header'>🏢 Կամպանիա</div>", unsafe_allow_html=True)
-            h_cols[3].markdown("<div class='table-header'>💵 Գումար (Տեսակ)</div>", unsafe_allow_html=True) # Թարմացված Header
+            h_cols[3].markdown("<div class='table-header'>💵 Գումար (Տեսակ)</div>", unsafe_allow_html=True)
             h_cols[4].markdown("<div class='table-header'>📅 Ամսաթիվ</div>", unsafe_allow_html=True)
             h_cols[5].markdown("<div class='table-header'>🚦 Կարգավիճակ</div>", unsafe_allow_html=True)
             h_cols[6].markdown("<div class='table-header'>⚙️</div>", unsafe_allow_html=True)
