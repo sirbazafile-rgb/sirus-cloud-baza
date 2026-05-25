@@ -55,7 +55,6 @@ st.markdown("""
 
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 if st.session_state.role == "admin":
-    # Դարձրինք 5 սյունակ, որ բոլոր կոճակները տեղավորվեն իրար կողք
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5 = st.columns([1, 1.2, 1.2, 1.2, 1])
     
     with menu_col1:
@@ -104,10 +103,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
     st.markdown("---")
     st.subheader("🔢 IMEI Կոդերի Մուտքագրում")
     
-    camera_file = st.camera_input("📷 Սկանավորել IMEI-ն")
-    if camera_file:
-        st.info("📷 Նկարը ստացված է։")
-        
     current_imeis = st.text_area("🔢 IMEI-ների Ցուցակ (Ամեն տողում մեկ IMEI)", placeholder="111111111\n222222222", height=150)
     
     if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
@@ -129,7 +124,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
         else:
             st.warning("⚠️ Խնդրում ենք լրացնել Մոդելը և IMEI կոդերը։")
 
-# --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ (ՆՈՐ) ---
+# --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ ---
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
     st.title("🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
     st.info("👋 Բռատ ջան, էս էջը պատրաստ է։ Ասա՝ ինչ դաշտեր (պատուհաններ) ավելացնենք այստեղ։")
