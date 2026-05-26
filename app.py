@@ -104,8 +104,39 @@ def edit_remont_dialog(item):
         }
         res = requests.patch(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item['id']}", headers=HEADERS, json=update_payload)
         if res.status_code in [200, 201, 204]:
-            st.success("🎉 Վերանորոգման տվյալները հաջողությամբ թարմացվեցին։")
+            st.success("🎉 Տվյալները հաջողությամբ թարմացվեցին։")
             st.rerun()
+
+# --- 🗑️ ՎԵՐԱՆՈՐՈԳՈՒՄ ՋՆՋԵԼՈՒ ՊԱՍՎՈՐԴՈՎ ՊԱՏՈՒՀԱՆ (DIALOG 12) ---
+@st.dialog("🗑️ Հաստատել Վերանորոգման Ջնջումը")
+def delete_remont_dialog(item_id, model_name):
+    st.warning(f"⚠️ Վստա՞հ ես, որ ուզում ես ջնջել «{model_name}» վերանորոգման տվյալը։")
+    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12)", type="password")
+    if st.button("🗑️ ՀԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
+        if pass_input == "12":
+            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item_id}", headers=HEADERS)
+            if del_res.status_code in [200, 204]:
+                st.success("Հաջողությամբ ջնջվեց։")
+                st.rerun()
+        else:
+            st.error("❌ Սխալ գաղտնաբառ։ Ջնջումը մերժվեց։")
+
+# --- 🚨 ԱՄԲՈՂՋ ԱՊՐԱՆՔՆԵՐԸ ՋՆՋԵԼՈՒ ՊԱՍՎՈՐԴՈՎ ՊԱՏՈՒՀԱՆ (DIALOG 89) ---
+@st.dialog("🚨 Ջնջել Ամբողջ Ապրանքների Բազան")
+def delete_all_products_dialog():
+    st.error("❗❗❗ ԶԳՈՒՇԱՑՈՒՄ. Այս գործողությունը կջնջի ԱՊՐԱՆՔՆԵՐԻ ամբողջ բազան և այն հնարավոր չի լինի վերականգնել։")
+    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (89)", type="password")
+    if st.button("💥 ՋՆՋԵԼ ԱՄԲՈՂՋՈՒԹՅԱՄԲ", type="primary"):
+        if pass_input == "89":
+            # Supabase-ում առանց ֆիլտրի ջնջելու համար (եթե API-ն թույլ է տալիս, օգտագործում ենք id.neq.0 կամ նմանատիպ պայման)
+            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=gt.0", headers=HEADERS)
+            if del_res.status_code in [200, 204]:
+                st.success("🎉 Ապրանքների ամբողջ բազան հաջողությամբ մաքրվեց։")
+                st.rerun()
+            else:
+                st.error("❌ Սերվերի սխալ կամ սահմանափակում Supabase-ում։")
+        else:
+            st.error("❌ Սխալ գաղտնաբառ։")
 
 # --- POP-UP ՏԵՍՆԵԼՈՒ ՖՈՒՆԿՑԻԱ (ԻՆՖՈՐՄԱՑԻԱՅԻ ՀԱՄԱՐ) ---
 @st.dialog("📱 Հեռախոսի Ամբողջական Ինֆորմացիան", width="large")
@@ -286,8 +317,14 @@ elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
     
-    # --- 📦 ԱՊՐԱՆՔՆԵՐԻ ԲԱԺԻՆ (Խումբը տեղափոխվել է IMEI-ից հետո) ---
+    # --- 📦 ԱՊՐԱՆՔՆԵՐԻ ԲԱԺԻՆ ---
     with tab1:
+        if st.session_state.role == "admin":
+            # 89 Գաղտնաբառով ամբողջ բազան ջնջելու կոճակը
+            if st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԱՊՐԱՆՔՆԵՐԻ ԲԱԶԱՆ", type="primary"):
+                delete_all_products_dialog()
+            st.markdown("---")
+
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             prod_list = res.json()
@@ -354,12 +391,11 @@ elif st.session_state.page == "baza":
                             edit_remont_dialog(rem_item)
                     else: st.markdown("<div class='table-row'>🔒</div>", unsafe_allow_html=True)
                 
+                # 🗑️ Ջնջելու կոճակ՝ 12 Պասվորդով
                 with r_cols[7]:
                     if st.session_state.role == "admin":
                         if st.button("🗑️", key=f"del_rem_{rem_item['id']}"):
-                            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{rem_item['id']}", headers=HEADERS)
-                            if del_res.status_code in [200, 204]:
-                                st.success("Ջնջվեց"); st.rerun()
+                            delete_remont_dialog(rem_item['id'], rem_item['model'])
                     else: st.markdown("<div class='table-row'>🔒</div>", unsafe_allow_html=True)
         else: st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
 
