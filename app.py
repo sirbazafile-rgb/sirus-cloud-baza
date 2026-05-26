@@ -91,7 +91,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # --- 📝 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP (DIALOG) ---
 @st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
-    st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (ID: {item['id']})")
+    st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
     col1, col2 = st.columns(2)
     with col1:
         u_model = st.text_input("📝 Մոդել", value=item.get("model", ""))
@@ -122,8 +122,8 @@ def edit_remont_dialog(item):
 
 # --- 🗑️ ՎԵՐԱՆՈՐՈԳՈՒՄ ՋՆՋԵԼՈՒ ՊԱՍՎՈՐԴՈՎ ՊԱՏՈՒՀԱՆ (DIALOG 12) ---
 @st.dialog("🗑️ Հաստատել Վերանորոգման Ջնջումը")
-def delete_remont_dialog(item_id, model_name):
-    st.warning(f"⚠️ Վստա՞հ ես, որ ուզում ես ջնջել № {item_id} «{model_name}» վերանորոգման տվյալը։")
+def delete_remont_dialog(item_id, display_id, model_name):
+    st.warning(f"⚠️ Վստա՞հ ես, որ ուզում ես ջնջել № {display_id} «{model_name}» վերանորոգման տվյալը։")
     pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12)", type="password")
     if st.button("🗑️ ՀԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
         if pass_input == "12":
@@ -153,12 +153,12 @@ def delete_all_products_dialog():
 # --- POP-UP ՏԵՍՆԵԼՈՒ ՖՈՒՆԿՑԻԱ ---
 @st.dialog("📱 Հեռախոսի Ամբողջական Ինֆորմացիան", width="large")
 def show_details_dialog(row):
-    st.markdown(f"### 🔗 {row['model']} (ID: {row['id']})")
+    st.markdown(f"### 🔗 {row['model']} (Համար՝ {row['display_id']})")
     st.markdown(f"**🔢 IMEI:** `{row['imei']}`")
     st.markdown("---")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        st.markdown(f"🏢 **Կամպանիա:** {row['kampania'] if row['kampania'] else '֊'}")
+        st.markdown(f"🏢 **Կամպանիա:** {row['campaign'] if row.get('kampania') else '֊'}")
         st.markdown(f"📅 **Ստացման Ամսաթիվ:** {row['received_date']}")
         st.markdown(f"📅 **Ձեռքբերման Ամսաթիվ:** {row['dzerq_berman_date'] if row['dzerq_berman_date'] else '֊'}")
         st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`")
@@ -205,7 +205,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
             if model and current_imeis and category:
                 imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
                 
-                # --- 🔍 ՁԵՌՔՈՎ ՄՈՒՏՔԻ ԿՐԿՆՈՒԹՅԱՆ ՍՏՈՒԳՈՒՄ ---
                 has_duplicate = False
                 for imei in imei_list:
                     if check_imei_exists(imei):
@@ -256,7 +255,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                     for index, row_data in df_upload.iterrows():
                         clean_imei = str(row_data['imei']).split('.')[0].strip()
                         
-                        # --- 🔍 EXCEL-Ի ԿՐԿՆՈՒԹՅԱՆ ՍՏՈՒԳՈՒՄ ---
                         if check_imei_exists(clean_imei):
                             duplicate_excel_count += 1
                             progress_bar.progress((index + 1) / total_rows)
@@ -361,7 +359,9 @@ elif st.session_state.page == "baza":
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             prod_list = res.json()
-            p_cols = st.columns([0.8, 2, 1.2, 1.2, 2.2, 1.5, 1.2, 0.8])
+            
+            # Հեռացրեցինք ջնջելու սյունը, չափերը վերաբաշխեցինք
+            p_cols = st.columns([0.8, 2.2, 1.3, 1.3, 2.5, 1.7, 1.4])
             p_cols[0].markdown("<div class='table-header'>🆔 ID</div>", unsafe_allow_html=True)
             p_cols[1].markdown("<div class='table-header'>📝 Մոդել</div>", unsafe_allow_html=True)
             p_cols[2].markdown("<div class='table-header'>💾 Հիշող.</div>", unsafe_allow_html=True)
@@ -369,28 +369,19 @@ elif st.session_state.page == "baza":
             p_cols[4].markdown("<div class='table-header'>🔢 IMEI / Սերիական</div>", unsafe_allow_html=True)
             p_cols[5].markdown("<div class='table-header'>📁 Խումբ</div>", unsafe_allow_html=True)
             p_cols[6].markdown("<div class='table-header'>📅 Գնելու Օր</div>", unsafe_allow_html=True)
-            p_cols[7].markdown("<div class='table-header'>⚙️ Ջնջել</div>", unsafe_allow_html=True)
             
-            # Համարակալման (index) միջոցով որոշում ենք տողի դասը (կենտ/զույգ)
             for idx, row in enumerate(prod_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
+                display_id = idx + 1  # Փաստացի հերթական համարը էկրանին (1, 2, 3...)
                 
-                r_cols = st.columns([0.8, 2, 1.2, 1.2, 2.2, 1.5, 1.2, 0.8])
-                r_cols[0].markdown(f"<div class='{row_style}'><code>{row['id']}</code></div>", unsafe_allow_html=True)
+                r_cols = st.columns([0.8, 2.2, 1.3, 1.3, 2.5, 1.7, 1.4])
+                r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{row['model']}</b></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='{row_style}'>{row['storage'] if row['storage'] else '֊'}</div>", unsafe_allow_html=True)
                 r_cols[3].markdown(f"<div class='{row_style}'>{row['color'] if row['color'] else '֊'}</div>", unsafe_allow_html=True)
                 r_cols[4].markdown(f"<div class='{row_style}'><code>{row['imei']}</code></div>", unsafe_allow_html=True)
                 r_cols[5].markdown(f"<div class='{row_style}'>{row.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
                 r_cols[6].markdown(f"<div class='{row_style}'>{row['buy_date'] if row['buy_date'] else '֊'}</div>", unsafe_allow_html=True)
-                
-                with r_cols[7]:
-                    if st.session_state.role == "admin":
-                        if st.button("🗑️", key=f"del_prod_{row['id']}"):
-                            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=eq.{row['id']}", headers=HEADERS)
-                            if del_res.status_code in [200, 204]:
-                                st.success("Ջնջվեց"); st.rerun()
-                    else: st.markdown(f"<div class='{row_style}'>🔒</div>", unsafe_allow_html=True)
         else: st.info("📦 Ապրանքների բազան դեռ դատարկ է։")
 
     # --- 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ԲԱԺԻՆ ---
@@ -410,12 +401,15 @@ elif st.session_state.page == "baza":
             rem_cols[7].markdown("<div class='table-header'>📝 Ուղղել</div>", unsafe_allow_html=True)
             rem_cols[8].markdown("<div class='table-header'>🗑️ Ջնջել</div>", unsafe_allow_html=True)
             
-            # Այստեղ նույնպես հերթով փոխում ենք գույները
             for idx, rem_item in enumerate(rem_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
+                display_id = idx + 1  # Վերանորոգման համար էլ սարքեցինք մաքուր համարակալում
+                
+                # Պահում ենք իրական ID-ն և երևացող ID-ն dialog-ների համար
+                rem_item['display_id'] = display_id
                 
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
-                r_cols[0].markdown(f"<div class='{row_style}'><code>{rem_item['id']}</code></div>", unsafe_allow_html=True)
+                r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{rem_item['model']}</b></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='{row_style}'><code>{rem_item['imei']}</code></div>", unsafe_allow_html=True)
                 r_cols[3].markdown(f"<div class='{row_style}'>{rem_item['kampania'] if rem_item['kampania'] else '֊'}</div>", unsafe_allow_html=True)
@@ -437,7 +431,7 @@ elif st.session_state.page == "baza":
                 with r_cols[8]:
                     if st.session_state.role == "admin":
                         if st.button("🗑️", key=f"del_rem_{rem_item['id']}"):
-                            delete_remont_dialog(rem_item['id'], rem_item['model'])
+                            delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
                     else: st.markdown(f"<div class='{row_style}'>🔒</div>", unsafe_allow_html=True)
         else: st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
 
