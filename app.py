@@ -8,6 +8,7 @@ SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
 SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 PRODUCTS_TABLE = "products"
 REMONT_TABLE = "remont"
+HISTORY_TABLE = "purchase_history"  # ՆՈՐ ԱՂՅՈՒՍԱԿ
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -45,7 +46,7 @@ if not st.session_state.authenticated:
         else: st.error("❌ Սխալ գաղտնաբառ")
     st.stop()
 
-# --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ---
+# --- 🗺️ NAVIGATION ՄԵՆՅՈՒ (6 ՍՅՈՒՆԱԿՈՎ) ---
 st.markdown("""
     <style>
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
@@ -59,7 +60,7 @@ st.markdown("""
 
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 if st.session_state.role == "admin":
-    menu_col1, menu_col2, menu_col3, menu_col4, menu_col5 = st.columns([1, 1.2, 1.2, 1.2, 1])
+    menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 1])
     with menu_col1:
         if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ"): st.session_state.page = "home"; st.rerun()
     with menu_col2:
@@ -70,6 +71,8 @@ if st.session_state.role == "admin":
     with menu_col4:
         if st.button("📊 SIRUS CLOUD BAZA"): st.session_state.page = "baza"; st.rerun()
     with menu_col5:
+        if st.button("📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ"): st.session_state.page = "history"; st.rerun()
+    with menu_col6:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -105,7 +108,7 @@ if st.session_state.page == "home" and st.session_state.role == "admin":
     st.title("🚀 SIRUS SYSTEM (Admin Mode)")
     st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
 
-# --- 2. 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ԹԱՐՄԱՑՎԱԾ Է EXCEL-Ի ՀԱՄԱՐ) ---
+# --- 2. 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (ԱՎՏՈՄԱՏԱՑՎԱԾ) ---
 elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
     
@@ -130,13 +133,23 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
                 success_count = 0
                 for imei in imei_list:
+                    # Գրանցում հիմնական բազայում
                     payload = {
                         "model": model, "storage": storage, "color": color, "imei": imei,
                         "matakarar": matakarar if matakarar else None, "buy_date": str(buy_date), "nshumner": nshumner if nshumner else None
                     }
                     res = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=payload)
-                    if res.status_code in [200, 201]: success_count += 1
-                if success_count > 0: st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս։"); st.balloons()
+                    if res.status_code in [200, 201]: 
+                        success_count += 1
+                        # ԱՎՏՈՄԱՏ ԳՐԱՆՑՈՒՄ ՊԱՏՄՈՒԹՅԱՆ ՄԵՋ
+                        full_model_title = f"{model} {storage} {color}".strip()
+                        hist_payload = {
+                            "date": str(buy_date), "model": full_model_title, "imei": imei, "quantity": 1, "matakarar": matakarar if matakarar else "Նշված չէ"
+                        }
+                        requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
+
+                if success_count > 0: 
+                    st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} հեռախոս բազայում և պատմության մեջ։"); st.balloons()
             else: st.warning("⚠️ Խնդրում ենք լրացնել Մոդելը և IMEI կոդերը։")
 
     with tab_excel:
@@ -149,13 +162,11 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
         
         if uploaded_file is not None:
             try:
-                # Կարդում ենք ֆայլը կախված տեսակից
                 if uploaded_file.name.endswith('.csv'):
                     df_upload = pd.read_csv(uploaded_file, dtype={'imei': str, 'storage': str})
                 else:
                     df_upload = pd.read_excel(uploaded_file, dtype={'imei': str, 'storage': str})
                 
-                # Մաքրում ենք դատարկ տողերը
                 df_upload = df_upload.dropna(subset=['model', 'imei'])
                 
                 st.markdown("### 👀 Ֆայլի տվյալների նախադիտում.")
@@ -169,12 +180,12 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                     progress_bar = st.progress(0)
                     
                     for index, row_data in df_upload.iterrows():
-                        # Ստեղծում ենք JSON payload ամեն տողի համար
+                        clean_imei = str(row_data['imei']).split('.')[0]
                         excel_payload = {
                             "model": str(row_data['model']),
                             "storage": str(row_data['storage']) if 'storage' in row_data and pd.notna(row_data['storage']) else None,
                             "color": str(row_data['color']) if 'color' in row_data and pd.notna(row_data['color']) else None,
-                            "imei": str(row_data['imei']).split('.')[0], # Կանխում ենք float դառնալը (.0 հանելով)
+                            "imei": clean_imei,
                             "matakarar": str(row_data['matakarar']) if 'matakarar' in row_data and pd.notna(row_data['matakarar']) else None,
                             "buy_date": str(row_data['buy_date']) if 'buy_date' in row_data and pd.notna(row_data['buy_date']) else str(datetime.now().date()),
                             "nshumner": str(row_data['nshumner']) if 'nshumner' in row_data and pd.notna(row_data['nshumner']) else None
@@ -183,12 +194,21 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                         res_excel = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=excel_payload)
                         if res_excel.status_code in [200, 201]:
                             success_excel_count += 1
+                            
+                            # ԱՎՏՈՄԱՏ ԳՐԱՆՑՈՒՄ ՊԱՏՄՈՒԹՅԱՆ ՄԵՋ (EXCEL-ԻՑ)
+                            ex_date = str(row_data['buy_date']) if 'buy_date' in row_data and pd.notna(row_data['buy_date']) else str(datetime.now().date())
+                            ex_model = f"{row_data['model']} {row_data['storage'] if 'storage' in row_data and pd.notna(row_data['storage']) else ''} {row_data['color'] if 'color' in row_data and pd.notna(row_data['color']) else ''}".strip()
+                            ex_matakarar = str(row_data['matakarar']) if 'matakarar' in row_data and pd.notna(row_data['matakarar']) else "Նշված չէ"
+                            
+                            excel_hist_payload = {
+                                "date": ex_date, "model": ex_model, "imei": clean_imei, "quantity": 1, "matakarar": ex_matakarar
+                            }
+                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
                         
-                        # Թարմացնում ենք progress bar-ը
                         progress_bar.progress((index + 1) / total_rows)
                     
                     if success_excel_count > 0:
-                        st.success(f"🎉 Ֆայլից {success_excel_count} ապրանք հաջողությամբ գրանցվեց Supabase ամպային բազայում։")
+                        st.success(f"🎉 Ֆայլից {success_excel_count} ապրանք հաջողությամբ գրանցվեց բազայում և պատմության մեջ։")
                         st.balloons()
                     else:
                         st.error("❌ Ոչ մի ապրանք չավելացավ։ Ստուգիր սյուների անունները։")
@@ -410,3 +430,28 @@ elif st.session_state.page == "baza":
                         st.session_state.delete_imei = None; st.rerun()
                 if st.button("❌ Չեղարկել", key="cancel_del"): st.session_state.delete_imei = None; st.rerun()
         else: st.info("🔧 Վերանորոգման բազան դեռ դատարկ է։")
+
+# --- 5. 📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅԱՆ ՆՈՐ ԷՋ ---
+elif st.session_state.page == "history" and st.session_state.role == "admin":
+    st.title("📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ")
+    st.markdown("Այստեղ երևում են բազա մուտքագրված բոլոր ապրանքների առանձին պատմությունները (այնպես, ինչպես խնդրել էիր)։")
+    
+    res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc", headers=HEADERS)
+    if res_hist.status_code == 200 and res_hist.json():
+        hist_list = res_hist.json()
+        df_hist = pd.DataFrame(hist_list)
+        
+        # Գեղեցկացնում ենք սյունակների անունները UI-ի համար
+        df_hist_clean = df_hist.rename(columns={
+            'date': '📅 Ամսաթիվ',
+            'model': '📝 Մոդել',
+            'imei': '🔢 IMEI',
+            'quantity': '📦 Քանակ',
+            'matakarar': '🏢 Մատակարար'
+        })
+        if 'id' in df_hist_clean.columns:
+            df_hist_clean = df_hist_clean.drop(columns=['id'])
+            
+        st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
+    else:
+        st.info("📜 Ձեռքբերման պատմության բազան դեռ դատարկ է։")
