@@ -49,10 +49,28 @@ if not st.session_state.authenticated:
     st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
+# Այստեղ ավելացրեցի fixed դիրքը, որ մենյուն վերևում սառած մնա
 st.markdown("""
     <style>
+    /* Սարքում ենք վերևի մենյուն ֆիքսված (Sticky) */
+    .sticky-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #0e1117; /* Ֆոնի գույնը, որ տեքստերը տակով անցնելիս չերևան */
+        z-index: 999999;
+        padding: 10px 45px 10px 45px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Բովանդակության համար բացատ, որ չմտնի ֆիքսված մենյուի տակ */
+    .main-content {
+        margin-top: 130px;
+    }
+    
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
-    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .table-header { background-color: #262730; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
     
     /* Տողերի հիմնական ստայլը (Կենտ տողերի համար - 1, 3, 5...) */
@@ -65,11 +83,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Գլխագիրը որպես Home Button
-if st.button("🚀 SIRUS CLOUD BAZA", key="logo_home_btn"):
-    st.session_state.page = "home"
-    st.rerun()
-
+# Բացում ենք ֆիքսված HTML div-ը մենյուի համար
+st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 1])
@@ -87,6 +102,39 @@ if st.session_state.role == "admin":
     with menu_col6:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True) # Փակում ենք sticky-nav div-ը
+
+# Այստեղից սկսվում է հիմնական էջի բովանդակությունը (որը կանցնի մենյուի տակով)
+st.markdown('<div class="main-content">', unsafe_allow_html=True)
+
+
+# --- 📦 ԱՊՐԱՆՔԻ ԽՄԲԱԳՐՄԱՆ POP-UP (DIALOG) ---
+@st.dialog("📝 Ապրանքի Տվյալների Փոփոխում", width="large")
+def edit_product_dialog(item):
+    st.markdown(f"### ⚙️ Խմբագրել ապրանքը՝ {item['model']} (Համար՝ {item['display_id']})")
+    col1, col2 = st.columns(2)
+    with col1:
+        u_category = st.text_input("📁 Խումբ", value=item.get("category", "Հեռախոս"))
+        u_model = st.text_input("📝 Մոդել", value=item.get("model", ""))
+        u_storage = st.text_input("💾 Հիշողություն", value=item.get("storage", "") if item.get("storage") else "")
+        u_color = st.text_input("🎨 Գույն", value=item.get("color", "") if item.get("color") else "")
+    with col2:
+        u_imei = st.text_input("🔢 IMEI / Սերիական", value=item.get("imei", ""))
+        u_matakarar = st.text_input("📦 Մատակարար", value=item.get("matakarar", "") if item.get("matakarar") else "")
+        u_buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.strptime(item["buy_date"], "%Y-%m-%d").date() if item.get("buy_date") else datetime.now())
+        u_nshumner = st.text_input("📌 Լրացուցիչ Նշումներ", value=item.get("nshumner", "") if item.get("nshumner") else "")
+
+    if st.button("💾 ՊԱՀՊԱՆԵԼ ՓՈՓՈԽՈՒԹՅՈՒՆՆԵՐԸ", type="primary"):
+        update_payload = {
+            "category": u_category, "model": u_model, "storage": u_storage if u_storage else None,
+            "color": u_color if u_color else None, "imei": u_imei, "matakarar": u_matakarar if u_matakarar else None,
+            "buy_date": str(u_buy_date), "nshumner": u_nshumner if u_nshumner else None
+        }
+        res = requests.patch(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=eq.{item['id']}", headers=HEADERS, json=update_payload)
+        if res.status_code in [200, 201, 204]:
+            st.success("🎉 Ապրանքի տվյալները հաջողությամբ թարմացվեցին։")
+            st.rerun()
+
 
 # --- 📝 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP (DIALOG) ---
 @st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
@@ -125,7 +173,7 @@ def edit_remont_dialog(item):
 def delete_remont_dialog(item_id, display_id, model_name):
     st.warning(f"⚠️ Վստա՞հ ես, որ ուզում ես ջնջել № {display_id} «{model_name}» վերանորոգման տվյալը։")
     pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12)", type="password")
-    if st.button("🗑️ ՀԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
+    if st.button("🗑️ HԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
         if pass_input == "12":
             del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item_id}", headers=HEADERS)
             if del_res.status_code in [200, 204]:
@@ -158,7 +206,7 @@ def show_details_dialog(row):
     st.markdown("---")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        st.markdown(f"🏢 **Կամպանիա:** {row['campaign'] if row.get('kampania') else '֊'}")
+        st.markdown(f"🏢 **Կամպանիա:** {row['kampania'] if row.get('kampania') else '֊'}")
         st.markdown(f"📅 **Ստացման Ամսաթիվ:** {row['received_date']}")
         st.markdown(f"📅 **Ձեռքբերման Ամսաթիվ:** {row['dzerq_berman_date'] if row['dzerq_berman_date'] else '֊'}")
         st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`")
@@ -227,7 +275,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "date": str(buy_date), "category": category, "model": full_model_title, "imei": imei, 
                                 "quantity": 1, "matakarar": matakarar if matakarar else "Նշված չէ"
                             }
-                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
+                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
 
                     if success_count > 0: 
                         st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք բազայում և պատմության մեջ։"); st.balloons()
@@ -360,8 +408,7 @@ elif st.session_state.page == "baza":
         if res.status_code == 200 and res.json():
             prod_list = res.json()
             
-            # Հեռացրեցինք ջնջելու սյունը, չափերը վերաբաշխեցինք
-            p_cols = st.columns([0.8, 2.2, 1.3, 1.3, 2.5, 1.7, 1.4])
+            p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             p_cols[0].markdown("<div class='table-header'>🆔 ID</div>", unsafe_allow_html=True)
             p_cols[1].markdown("<div class='table-header'>📝 Մոդել</div>", unsafe_allow_html=True)
             p_cols[2].markdown("<div class='table-header'>💾 Հիշող.</div>", unsafe_allow_html=True)
@@ -369,12 +416,14 @@ elif st.session_state.page == "baza":
             p_cols[4].markdown("<div class='table-header'>🔢 IMEI / Սերիական</div>", unsafe_allow_html=True)
             p_cols[5].markdown("<div class='table-header'>📁 Խումբ</div>", unsafe_allow_html=True)
             p_cols[6].markdown("<div class='table-header'>📅 Գնելու Օր</div>", unsafe_allow_html=True)
+            p_cols[7].markdown("<div class='table-header'>📝 Ուղղել</div>", unsafe_allow_html=True)
             
             for idx, row in enumerate(prod_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1  # Փաստացի հերթական համարը էկրանին (1, 2, 3...)
+                display_id = idx + 1
+                row['display_id'] = display_id
                 
-                r_cols = st.columns([0.8, 2.2, 1.3, 1.3, 2.5, 1.7, 1.4])
+                r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
                 r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{row['model']}</b></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='{row_style}'>{row['storage'] if row['storage'] else '֊'}</div>", unsafe_allow_html=True)
@@ -382,6 +431,12 @@ elif st.session_state.page == "baza":
                 r_cols[4].markdown(f"<div class='{row_style}'><code>{row['imei']}</code></div>", unsafe_allow_html=True)
                 r_cols[5].markdown(f"<div class='{row_style}'>{row.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
                 r_cols[6].markdown(f"<div class='{row_style}'>{row['buy_date'] if row['buy_date'] else '֊'}</div>", unsafe_allow_html=True)
+                
+                with r_cols[7]:
+                    if st.session_state.role == "admin":
+                        if st.button("📝", key=f"edit_prod_{row['id']}"):
+                            edit_product_dialog(row)
+                    else: st.markdown(f"<div class='{row_style}'>🔒</div>", unsafe_allow_html=True)
         else: st.info("📦 Ապրանքների բազան դեռ դատարկ է։")
 
     # --- 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ԲԱԺԻՆ ---
@@ -403,9 +458,7 @@ elif st.session_state.page == "baza":
             
             for idx, rem_item in enumerate(rem_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1  # Վերանորոգման համար էլ սարքեցինք մաքուր համարակալում
-                
-                # Պահում ենք իրական ID-ն և երևացող ID-ն dialog-ների համար
+                display_id = idx + 1
                 rem_item['display_id'] = display_id
                 
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
@@ -448,3 +501,5 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
         if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
         st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
     else: st.info("📜 Պատմությունը դեռ դատարկ է։")
+
+st.markdown('</div>', unsafe_allow_html=True) # Փակում ենք main-content div-ը
