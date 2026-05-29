@@ -4,8 +4,10 @@ import requests
 from datetime import datetime
 
 # --- CONFIG & CONSTANTS ---
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+# --- CONFIG & CONSTANTS ---
+# Հետ ենք դնում քո ուղիղ հղումները
+SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
+SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 
 # Աղյուսակների անունները
 BAZA_TABLE = "sirus_baza"
