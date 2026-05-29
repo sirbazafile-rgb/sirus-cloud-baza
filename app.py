@@ -49,10 +49,28 @@ if not st.session_state.authenticated:
     st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
+# Այստեղ ավելացրեցի fixed դիրքը, որ մենյուն վերևում սառած մնա
 st.markdown("""
     <style>
+    /* Սարքում ենք վերևի մենյուն ֆիքսված (Sticky) */
+    .sticky-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #0e1117; /* Ֆոնի գույնը, որ տեքստերը տակով անցնելիս չերևան */
+        z-index: 999999;
+        padding: 10px 45px 10px 45px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Բովանդակության համար բացատ, որ չմտնի ֆիքսված մենյուի տակ */
+    .main-content {
+        margin-top: 130px;
+    }
+    
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
-    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .table-header { background-color: #262730; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; }
     
     /* Տողերի հիմնական ստայլը (Կենտ տողերի համար - 1, 3, 5...) */
@@ -64,6 +82,9 @@ st.markdown("""
     div[data-testid="stMetric"] { background-color: #262730; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
     </style>
 """, unsafe_allow_html=True)
+
+# Բացում ենք ֆիքսված HTML div-ը մենյուի համար
+st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
 
 # Գլխագիրը որպես Home Button
 if st.button("🚀 SIRUS CLOUD BAZA", key="logo_home_btn"):
@@ -87,6 +108,10 @@ if st.session_state.role == "admin":
     with menu_col6:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True) # Փակում ենք sticky-nav div-ը
+
+# Այստեղից սկսվում է հիմնական էջի բովանդակությունը (որը կանցնի մենյուի տակով)
+st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 
 # --- 📦 ԱՊՐԱՆՔԻ ԽՄԲԱԳՐՄԱՆ POP-UP (DIALOG) ---
@@ -256,7 +281,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "date": str(buy_date), "category": category, "model": full_model_title, "imei": imei, 
                                 "quantity": 1, "matakarar": matakarar if matakarar else "Նշված չէ"
                             }
-                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
+                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
 
                     if success_count > 0: 
                         st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք բազայում և պատմության մեջ։"); st.balloons()
@@ -389,7 +414,6 @@ elif st.session_state.page == "baza":
         if res.status_code == 200 and res.json():
             prod_list = res.json()
             
-            # Ավելացրեցինք «Խմբագրել» սյունակը վերջում
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             p_cols[0].markdown("<div class='table-header'>🆔 ID</div>", unsafe_allow_html=True)
             p_cols[1].markdown("<div class='table-header'>📝 Մոդել</div>", unsafe_allow_html=True)
@@ -402,9 +426,8 @@ elif st.session_state.page == "baza":
             
             for idx, row in enumerate(prod_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1  # Ֆաստացի հերթական համարը էկրանին
-                
-                row['display_id'] = display_id  # Փոխանցում ենք Dialog-ին
+                display_id = idx + 1
+                row['display_id'] = display_id
                 
                 r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
                 r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
@@ -442,7 +465,6 @@ elif st.session_state.page == "baza":
             for idx, rem_item in enumerate(rem_list):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
                 display_id = idx + 1
-                
                 rem_item['display_id'] = display_id
                 
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
@@ -485,3 +507,5 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
         if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
         st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
     else: st.info("📜 Պատմությունը դեռ դատարկ է։")
+
+st.markdown('</div>', unsafe_allow_html=True) # Փակում ենք main-content div-ը
