@@ -275,8 +275,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "date": str(buy_date), "category": category, "model": full_model_title, "imei": imei, 
                                 "quantity": 1, "matakarar": matakarar if matakarar else "Նշված չէ"
                             }
-                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
-
+                           requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
                     if success_count > 0: 
                         st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք բազայում և պատմության մեջ։"); st.balloons()
             else: st.warning("⚠️ Խնդրում ենք լրացնել Խումբը, Մոդելը և IMEI/Սերիական կոդերը։")
