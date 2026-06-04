@@ -26,7 +26,7 @@ HEADERS = {
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
 # ՎԵՐՍԻԱ 3.5 (Ապահովված բանալիներով)
-st.write("<!-- v3.5 -->")
+
 
 # [Այստեղից հետո քո ամբողջ կոդը (Session State, Մուտքի էջ, Ֆիլտրներ, Էջեր) մնում է նույնությամբ...]
 
@@ -101,11 +101,11 @@ st.markdown("""
         font-weight: bold; 
         text-align: center; 
         border-bottom: 2px solid #464855; 
-        font-size: 14px; 
+        font-size: 12px; 
     }
     
-    .table-row-odd { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
-    .table-row-even { background-color: #292A34; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-row-odd { background-color: #769472; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-row-even { background-color:#779e7d; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     
     /* Ֆիլտրների դաշտերի հատուկ փոքրացված ստայլ */
     div[data-testid="stHeaderBlock"] input {
