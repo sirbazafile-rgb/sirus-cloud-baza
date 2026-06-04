@@ -93,7 +93,7 @@ st.markdown("""
     .table-header { 
         position: -webkit-sticky; /* iOS-ի համար */
         position: sticky; 
-        top: 60px;                /* Բարձրացրինք վերև, որ մենյուի տակից դուրս գա */
+        top: 110px;                /* Բարձրացրինք վերև, որ մենյուի տակից դուրս գա */
         z-index: 9999;            /* Բարձրացրինք շերտը, որ ոչ մի տող վրայով չանցնի */
         background-color: #262730; 
         padding: 10px; 
