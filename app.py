@@ -21,7 +21,7 @@ HEADERS = {
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
 # ՎԵՐՍԻԱ 3.1 (Բազայի սյուների ճշգրտում)
-st.write("<!-- v3.1 -->")
+#st.write("<!-- v3.1 -->")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -78,7 +78,7 @@ if not st.session_state.authenticated:
 st.markdown("""
     <style>
     .sticky-nav {
-        position: fixed; top: 0; left: 0; right: 0; background-color: #0e1117; 
+        position: fixed; top: 0; left: 0; right: 0; background-color: #65875d; 
         z-index: 999999; padding: 10px 45px 10px 45px; border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     }
     .main-content { margin-top: 90px; }
