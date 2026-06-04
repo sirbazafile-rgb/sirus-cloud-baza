@@ -77,16 +77,26 @@ if not st.session_state.authenticated:
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
 st.markdown("""
     <style>
+    /* Մենյուի հետևի ֆոնը՝ կանաչ ու դեղին երանգների մեջ */
     .sticky-nav {
-        position: fixed; top: 0; left: 0; right: 0; background-color: #65875d; 
-        z-index: 999999; padding: 10px 45px 10px 45px; border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        position: fixed; top: 0; left: 0; right: 0; 
+        background: linear-gradient(135deg, #1b4332 0%, #aacc00 100%); 
+        z-index: 999999; padding: 10px 45px 10px 45px; 
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
     }
-    .main-content { margin-top: 90px; }
+    .main-content { margin-top: 110px; }
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
-    .nav-container { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
-    .table-header { background-color: #66eef2; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #db236d; font-size: 14px; }
-    .table-row-odd { background-color:#e1fa02; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
-    .table-row-even { background-color: #a5d611; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    /* Աղյուսակի գլխամասի ֆիքսում (Sticky Header) */
+    .table-header { 
+        position: sticky; top: 85px; z-index: 999;
+        background-color: #262730; padding: 10px; border-radius: 5px; 
+        font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; 
+    }
+    
+    .table-row-odd { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-row-even { background-color: #292A34; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     </style>
 """, unsafe_allow_html=True)
 
