@@ -37,7 +37,7 @@ if "found_product" not in st.session_state: st.session_state.found_product = Non
 # Ֆունկցիա՝ Բազայից գաղտնաբառերը կարդալու համար
 def load_passwords():
     try:
-        res = requests.get(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS)
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc&limit=50000", headers=HEADERS)
         if res.status_code == 200 and len(res.json()) > 0:
             data = res.json()[0]
             return data.get("admin_password", "sirusadmin2026"), data.get("user_password", "sirususer2026")
