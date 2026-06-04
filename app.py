@@ -20,7 +20,7 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.2 (Ադապտացված հեռախոսների համար)
+# ՎԵՐՍԻԱ 3.3 (Անհատական սյունակների ֆիլտրերով)
 st.write("")
 
 # Session State-ի սկզբնավորում
@@ -77,7 +77,6 @@ if not st.session_state.authenticated:
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ԱՎՏՈՄԱՏ ԱԴԱՊՏԻՎ ՍՏԱՅԼԵՐ ---
 st.markdown("""
     <style>
-    /* Գլխավոր Մենյուի ստանդարտ տեսքը (PC) */
     .sticky-nav {
         position: fixed; top: 0; left: 0; right: 0; 
         background: linear-gradient(135deg, #1b4332 0%, #aacc00 100%); 
@@ -88,7 +87,6 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     
-    /* Աղյուսակի գլխամասի ստատիկ տեսքը */
     .table-header { 
         background-color: #262730; 
         padding: 10px; 
@@ -102,35 +100,21 @@ st.markdown("""
     .table-row-odd { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     .table-row-even { background-color: #292A34; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     
-    /* 📱 --- ԱՎՏՈՄԱՏ ԿԱՇԽԱՏԻ ՄԻԱՅՆ ՀԵՌԱԽՈՍՆԵՐԻ ՎՐԱ (Responsive Mobile Fixes) --- */
+    /* Ֆիլտրների դաշտերի հատուկ փոքրացված ստայլ */
+    div[data-testid="stHeaderBlock"] input {
+        padding: 2px 5px !important;
+    }
+    
     @media (max-width: 768px) {
-        /* 1. Փոքրացնում ենք մենյուի բարձրությունն ու էջի դատարկ տարածությունը */
         .sticky-nav { padding: 5px 10px; position: static !important; }
         .main-content { margin-top: 15px; }
         .nav-container { padding: 6px; }
-        
-        /* 2. Կոճակները դարձնում ենք ավելի ցածր և կոմպակտ հեռախոսի համար */
         .stButton>button { height: 32px !important; font-size: 11px !important; padding: 2px 5px !important; margin-bottom: 4px; }
-        
-        /* 3. ՓՈՔՐԱՑՆՈՒՄ ԵՆՔ ՏԱՌԵՐԻ ՉԱՓՍԵՐԸ (ԿԱՐԳԱՎԻՉԱԿՆԵՐԻ, ԻՆՖՈՅԻ և ԱՂՅՈՒՍԱԿՆԵՐԻ ՄԵՋ) */
         .table-header { font-size: 11px !important; padding: 6px 2px !important; }
         .table-row-odd, .table-row-even { font-size: 11px !important; padding: 5px 2px !important; min-height: 35px !important; }
-        
-        /* Վիդջեթների (selectbox, input) պիտակները (Labels) */
-        .stWidgetFormLabel div, label p, .stMarkdown p, span {
-            font-size: 11px !important;
-        }
-        
-        /* Ընտրության դաշտերի (selectbox) ներսի տեքստը */
-        .stSelectbox div[data-baseweb="select"], .stTextInput input, .stNumberInput input {
-            font-size: 11px !important;
-            min-height: 28px !important;
-        }
-
-        /* 4. Թույլ ենք տալիս, որ սյունակները հեռախոսի վրա չխառնվեն, այլ ունենան հորիզոնական scroll */
-        div[data-testid="stHorizontalBlock"] {
-            gap: 4px !important;
-        }
+        .stWidgetFormLabel div, label p, .stMarkdown p, span { font-size: 11px !important; }
+        .stSelectbox div[data-baseweb="select"], .stTextInput input, .stNumberInput input { font-size: 11px !important; min-height: 28px !important; }
+        div[data-testid="stHorizontalBlock"] { gap: 4px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -274,7 +258,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
             storage = st.text_input("💾 Հիշողություն")
             color = st.text_input("🎨 Գույն")
         with col2:
-            matakarar = st.text_input("📦 Մատակարar")
+            matakarar = st.text_input("📦 Մատակարար")
             buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.now(), key="manual_buy_date")
             nshumner = st.text_input("📌 Լրացուցիչ Նշումներ")
         st.markdown("---")
@@ -402,14 +386,26 @@ elif st.session_state.page == "baza":
     
     with tab1:
         if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): delete_all_products_dialog()
-        search_prod_query = st.text_input("🔍 Փնտրել Ապրանք (Գրեք IMEI կամ Մոդել)", placeholder="Մուտքագրեք տվյալը...")
+        
+        # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ ---
+        st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
+        f_p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
+        with f_p_cols[1]: f_p_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_p_mod")
+        with f_p_cols[2]: f_p_storage = st.text_input("Ֆիլտր Հիշող.", placeholder="🔍...", label_visibility="collapsed", key="f_p_sto")
+        with f_p_cols[3]: f_p_color = st.text_input("Ֆիլտր Գույն", placeholder="🔍...", label_visibility="collapsed", key="f_p_col")
+        with f_p_cols[4]: f_p_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_p_im")
+        with f_p_cols[5]: f_p_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_p_ct")
         
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             products_data = res.json()
-            if search_prod_query.strip():
-                q = search_prod_query.strip().lower()
-                products_data = [r for r in products_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower()]
+            
+            # Ֆիլտրման տրամաբանություն (Python-ի մակարդակով)
+            if f_p_model: products_data = [r for r in products_data if f_p_model.lower() in str(r.get('model','')).lower()]
+            if f_p_storage: products_data = [r for r in products_data if f_p_storage.lower() in str(r.get('storage','')).lower()]
+            if f_p_color: products_data = [r for r in products_data if f_p_color.lower() in str(r.get('color','')).lower()]
+            if f_p_imei: products_data = [r for r in products_data if f_p_imei.lower() in str(r.get('imei','')).lower()]
+            if f_p_cat: products_data = [r for r in products_data if f_p_cat.lower() in str(r.get('category','')).lower()]
             
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
@@ -432,13 +428,23 @@ elif st.session_state.page == "baza":
                     else: st.write("🔒")
 
     with tab2:
-        search_rem_query = st.text_input("🔍 Փնտրել Դեպք (Գրեք IMEI, Մոդել կամ Կամպանիա)", placeholder="Մուտքագրեք տվյալը...")
+        # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ՀԱՄԱՐ ---
+        st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
+        f_r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
+        with f_r_cols[1]: f_r_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_r_mod")
+        with f_r_cols[2]: f_r_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_r_im")
+        with f_r_cols[3]: f_r_kam = st.text_input("Ֆիլտր Կամպ.", placeholder="🔍...", label_visibility="collapsed", key="f_r_km")
+        with f_r_cols[5]: f_r_st = st.text_input("Ֆիլտր Կարգավիճակ", placeholder="🔍...", label_visibility="collapsed", key="f_r_st")
+        
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
             remont_data = res_rem.json()
-            if search_rem_query.strip():
-                q = search_rem_query.strip().lower()
-                remont_data = [r for r in remont_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower() or q in str(r.get('kampania','')).lower()]
+            
+            # Ֆիլտրման տրամաբանություն
+            if f_r_model: remont_data = [r for r in remont_data if f_r_model.lower() in str(r.get('model','')).lower()]
+            if f_r_imei: remont_data = [r for r in remont_data if f_r_imei.lower() in str(r.get('imei','')).lower()]
+            if f_r_kam: remont_data = [r for r in remont_data if f_r_kam.lower() in str(r.get('kampania','')).lower()]
+            if f_r_st: remont_data = [r for r in remont_data if f_r_st.lower() in str(r.get('kargavichak','')).lower()]
             
             rem_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
             headers_rem = ["🆔 ID", "📝 Մոդել", "🔢 IMEI", "🏢 Կամպանիա", "💵 Գումար", "🚦 Կարգավիճակ", "📱 Ինֆո", "📝 Ուղղել", "🗑️ Ջնջել"]
