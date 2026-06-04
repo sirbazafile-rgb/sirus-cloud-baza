@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ (Հետ բերված իրենց տեղը) ---
+# --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
 SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 PRODUCTS_TABLE = "products"
@@ -20,11 +20,16 @@ HEADERS = {
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
 # Session State-ի սկզբնավորում
-if "authenticated" not in st.session_state: st.session_state.authenticated = False
-if "role" not in st.session_state: st.session_state.role = None
-if "page" not in st.session_state: st.session_state.page = "home"
-if "remont_step2" not in st.session_state: st.session_state.remont_step2 = False
-if "found_product" not in st.session_state: st.session_state.found_product = None
+if "authenticated" not in st.session_state: 
+    st.session_state.authenticated = False
+if "role" not in st.session_state: 
+    st.session_state.role = None
+if "page" not in st.session_state: 
+    st.session_state.page = "home"
+if "remont_step2" not in st.session_state: 
+    st.session_state.remont_step2 = False
+if "found_product" not in st.session_state: 
+    st.session_state.found_product = None
 
 ADMIN_PASSWORD = "sirusadmin2026"
 USER_PASSWORD = "sirususer2026"
@@ -42,10 +47,17 @@ if not st.session_state.authenticated:
     input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
     if st.button("🚪 Մուտք Գործել", type="primary"):
         if input_password == ADMIN_PASSWORD:
-            st.session_state.authenticated = True; st.session_state.role = "admin"; st.session_state.page = "home"; st.rerun()
+            st.session_state.authenticated = True
+            st.session_state.role = "admin"
+            st.session_state.page = "home"
+            st.rerun()
         elif input_password == USER_PASSWORD:
-            st.session_state.authenticated = True; st.session_state.role = "user"; st.session_state.page = "baza"; st.rerun()
-        else: st.error("❌ Սխալ գաղտնաբառ")
+            st.session_state.authenticated = True
+            st.session_state.role = "user"
+            st.session_state.page = "baza"
+            st.rerun()
+        else: 
+            st.error("❌ Սխալ գաղտնաբառ")
     st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
@@ -77,24 +89,39 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Բացում ենք ֆիքսված HTML div-ը մենյուի համար (Ավելորդ կոճակը հեռացված է)
+# Բացում ենք ֆիքսված HTML div-ը մենյուի համար
 st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
+
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 1])
     with menu_col1:
-        if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ"): st.session_state.page = "home"; st.rerun()
+        if st.button("🏠 ԳԼԽԱՎՈՐ ԷՋ"): 
+            st.session_state.page = "home"
+            st.rerun()
     with menu_col2:
-        if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ"): st.session_state.page = "add_product"; st.rerun()
+        if st.button("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ"): 
+            st.session_state.page = "add_product"
+            st.rerun()
     with menu_col3:
         if st.button("🔧 ՎԵՐԱՆՈՐՈԳՈՒՄ"): 
-            st.session_state.page = "remont"; st.session_state.remont_step2 = False; st.session_state.found_product = None; st.rerun()
+            st.session_state.page = "remont"
+            st.session_state.remont_step2 = False
+            st.session_state.found_product = None
+            st.rerun()
     with menu_col4:
-        if st.button("📊 SIRUS CLOUD BAZA"): st.session_state.page = "baza"; st.rerun()
+        if st.button("📊 SIRUS CLOUD BAZA"): 
+            st.session_state.page = "baza"
+            st.rerun()
     with menu_col5:
-        if st.button("📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ"): st.session_state.page = "history"; st.rerun()
+        if st.button("📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ"): 
+            st.session_state.page = "history"
+            st.rerun()
     with menu_col6:
-        if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
+        if st.button("🚪 ԵԼՔ"): 
+            st.session_state.authenticated = False
+            st.rerun()
+
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -171,7 +198,8 @@ def delete_remont_dialog(item_id, display_id, model_name):
             if del_res.status_code in [200, 204]:
                 st.success("Հաջողությամբ ջնջվեց։")
                 st.rerun()
-        else: st.error("❌ Սխալ գաղտնաբառ։")
+        else: 
+            st.error("❌ Սխալ գաղտնաբառ։")
 
 # --- 🚨 ԱՄԲՈՂՋ ԱՊՐԱՆՔՆԵՐԸ ՋՆՋԵԼՈՒ ՊԱՏՈՒՀԱՆ (Գաղտնաբառ 89) ---
 @st.dialog("🚨 Ջնջել Ամբողջ Ապրանքների Բազան")
@@ -184,7 +212,8 @@ def delete_all_products_dialog():
             if del_res.status_code in [200, 204]:
                 st.success("🎉 Ապրանքների ամբողջ բազան հաջողությամբ մաքրվեց։")
                 st.rerun()
-        else: st.error("❌ Սխալ գաղտնաբառ։")
+        else: 
+            st.error("❌ Սխալ գաղտնաբառ։")
 
 # --- 👁️ ՄԱՆՐԱՄԱՍՆ ՏԵՍՆԵԼՈՒ ՊԱՏՈՒՀԱՆ ---
 @st.dialog("📱 Հեռախոսի Ամբողջական Ինֆորմացիան", width="large")
@@ -239,7 +268,8 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 for imei in imei_list:
                     if check_imei_exists(imei):
                         st.error(f"⚠️ IMEI `{imei}` արդեն գոյություն ունի։")
-                        has_duplicate = True; break
+                        has_duplicate = True
+                        break
                 
                 if not has_duplicate:
                     success_count = 0
@@ -256,26 +286,32 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "date": str(buy_date), "category": category, "model": full_model_title, "imei": imei, 
                                 "quantity": 1, "matakarar": matakarar if matakarar else "Նշված չէ"
                             }
-                            # ՈՒՂՂՎԱԾ ՏՈՂԸ (hist_payload)
                             requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
 
-                    if success_count > 0: st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք։"); st.balloons()
-            else: st.warning("⚠️ Լրացրեք պարտադիր դաշտերը։")
+                    if success_count > 0: 
+                        st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք։")
+                        st.balloons()
+            else: 
+                st.warning("⚠️ Լրացրեք պարտադիր դաշտերը։")
 
     with tab_excel:
         uploaded_file = st.file_uploader("Ընտրիր Excel կամ CSV ֆայլը", type=["xlsx", "csv"])
         if uploaded_file is not None:
             try:
-                if uploaded_file.name.endswith('.csv'): df_upload = pd.read_csv(uploaded_file, dtype={'imei': str, 'storage': str})
-                else: df_upload = pd.read_excel(uploaded_file, dtype={'imei': str, 'storage': str})
+                if uploaded_file.name.endswith('.csv'): 
+                    df_upload = pd.read_csv(uploaded_file, dtype={'imei': str, 'storage': str})
+                else: 
+                    df_upload = pd.read_excel(uploaded_file, dtype={'imei': str, 'storage': str})
+                
                 df_upload = df_upload.dropna(subset=['model', 'imei'])
                 st.dataframe(df_upload, use_container_width=True)
                 
-                if st.button("🚀 ՊԱՀՊԱՆԵԼ EXCEL-Ի ՏՎՅԱԼՆԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
+                if st.button("🚀 ՊԱՀՊ安ԵԼ EXCEL-Ի ՏՎՅԱԼՆԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
                     success_excel_count = 0
                     for index, row_data in df_upload.iterrows():
                         clean_imei = str(row_data['imei']).split('.')[0].strip()
-                        if check_imei_exists(clean_imei): continue
+                        if check_imei_exists(clean_imei): 
+                            continue
                         cat_val = str(row_data['xumb']) if 'xumb' in row_data and pd.notna(row_data['xumb']) else "Հեռախոս"
                         
                         excel_payload = {
@@ -297,23 +333,29 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "matakarar": str(row_data['matakarar']) if 'matakarar' in row_data and pd.notna(row_data['matakarar']) else "Նշված չէ"
                             }
                             requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
-                    if success_excel_count > 0: st.success(f"🎉 {success_excel_count} ապրանք գրանցվեց Excel-ից։"); st.balloons()
-            except Exception as e: st.error(f"❌ Սխալ. {e}")
+                    if success_excel_count > 0: 
+                        st.success(f"🎉 {success_excel_count} ապրանք գրանցվեց Excel-ից։")
+                        st.balloons()
+            except Exception as e: 
+                st.error(f"❌ Սխալ. {e}")
 
 # --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ ---
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
-    st.title("🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
+    st.title("🔧 signatures ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
     search_imei = st.text_input("🔢 Գրիր կամ սկանավորիր IMEI-ն")
     if st.button("🔍 ՓՆՏՐԵԼ ԲԱԶԱՅՈՒՄ"):
         if search_imei:
             res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}", headers=HEADERS)
-            if res.status_code == 200 and len(res.json()) > 0: st.session_state.found_product = res.json()[0]
-            else: st.error("❌ Ապրանք չգտնվեց։")
+            if res.status_code == 200 and len(res.json()) > 0: 
+                st.session_state.found_product = res.json()[0]
+            else: 
+                st.error("❌ Ապրանք չգտնվեց։")
 
     if st.session_state.found_product:
         prod = st.session_state.found_product
         st.markdown(f"### 📱 Գտնվել է՝ {prod.get('model')}")
-        if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՎԵՐԱՆՈՐՈԳՈՒՄ", type="primary"): st.session_state.remont_step2 = True
+        if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՎԵՐԱՆՈՐՈԳՈՒՄ", type="primary"): 
+            st.session_state.remont_step2 = True
 
     if st.session_state.remont_step2 and st.session_state.found_product:
         prod = st.session_state.found_product
@@ -338,7 +380,9 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 "dzerq_berman_date": str(dzerq_date), "kargavichak": kargavichak
             }
             if requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload).status_code in [200, 201]:
-                st.success("🎉 Ռեմոնտը հաջողությամբ գրանցվեց։"); st.session_state.remont_step2 = False; st.session_state.found_product = None
+                st.success("🎉 Ռեմոնտը հաջողությամբ գրանցվեց։")
+                st.session_state.remont_step2 = False
+                st.session_state.found_product = None
 
 # --- 4. 📊 SIRUS CLOUD BAZA ---
 elif st.session_state.page == "baza":
@@ -346,16 +390,19 @@ elif st.session_state.page == "baza":
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
     
     with tab1:
-        if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): delete_all_products_dialog()
+        if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): 
+            delete_all_products_dialog()
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
-            for idx, h in enumerate(headers_text): p_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
+            for idx, h in enumerate(headers_text): 
+                p_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
             
             for idx, row in enumerate(res.json()):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1; row['display_id'] = display_id
+                display_id = idx + 1
+                row['display_id'] = display_id
                 r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
                 r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{row['model']}</b></div>", unsafe_allow_html=True)
@@ -365,18 +412,21 @@ elif st.session_state.page == "baza":
                 r_cols[5].markdown(f"<div class='{row_style}'>{row.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
                 r_cols[6].markdown(f"<div class='{row_style}'>{row['buy_date'] if row['buy_date'] else '֊'}</div>", unsafe_allow_html=True)
                 with r_cols[7]:
-                    if st.session_state.role == "admin" and st.button("📝", key=f"edit_p_{row['id']}"): edit_product_dialog(row)
+                    if st.session_state.role == "admin" and st.button("📝", key=f"edit_p_{row['id']}"): 
+                        edit_product_dialog(row)
 
     with tab2:
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
             rem_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
             headers_rem = ["🆔 ID", "📝 Մոդել", "🔢 IMEI", "🏢 Կամպանիա", "💵 Գումար", "🚦 Կարգավիճակ", "📱 Ինֆո", "📝 Ուղղել", "🗑️ Ջնջել"]
-            for idx, h in enumerate(headers_rem): rem_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
+            for idx, h in enumerate(headers_rem): 
+                rem_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
             
             for idx, rem_item in enumerate(res_rem.json()):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1; rem_item['display_id'] = display_id
+                display_id = idx + 1
+                rem_item['display_id'] = display_id
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
                 r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{rem_item['model']}</b></div>", unsafe_allow_html=True)
@@ -386,11 +436,14 @@ elif st.session_state.page == "baza":
                 status_color = "#FFA500" if rem_item['kargavichak'] == "Վերանորոգման է" else "#00FF00" if rem_item['kargavichak'] == "Պատրաստ է" else "#999999"
                 r_cols[5].markdown(f"<div class='{row_style}' style='color:{status_color}; font-weight:bold;'>{rem_item['kargavichak']}</div>", unsafe_allow_html=True)
                 with r_cols[6]:
-                    if st.button("👁️", key=f"v_{rem_item['id']}"): show_details_dialog(rem_item)
+                    if st.button("👁️", key=f"v_{rem_item['id']}"): 
+                        show_details_dialog(rem_item)
                 with r_cols[7]:
-                    if st.session_state.role == "admin" and st.button("📝", key=f"e_{rem_item['id']}"): edit_remont_dialog(rem_item)
+                    if st.session_state.role == "admin" and st.button("📝", key=f"e_{rem_item['id']}"): 
+                        edit_remont_dialog(rem_item)
                 with r_cols[8]:
-                    if st.session_state.role == "admin" and st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
+                    if st.session_state.role == "admin" and st.button("🗑️", key=f"d_{rem_item['id']}"): 
+                        delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
 
 # --- 5. 📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ ---
 elif st.session_state.page == "history" and st.session_state.role == "admin":
@@ -399,7 +452,8 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
     if res_hist.status_code == 200 and res_hist.json():
         df_hist = pd.DataFrame(res_hist.json())
         df_hist_clean = df_hist.rename(columns={'date': '📅 Ամսաթիվ', 'category': '📁 Խումբ', 'model': '📝 Մոդել', 'imei': '🔢 IMEI', 'quantity': '📦 Քանակ', 'matakarar': '🏢 Մատակարար'})
-        if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
+        if 'id' in df_hist_clean.columns: 
+            df_hist_clean = df_hist_clean.drop(columns=['id'])
         st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
