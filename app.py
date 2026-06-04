@@ -96,7 +96,7 @@ st.markdown("""
         font-weight: bold; 
         text-align: center; 
         border-bottom: 2px solid #464855; 
-        font-size: 14px; 
+        font-size: 12px; 
     }
     
     .table-row-odd { background-color: #769472; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
