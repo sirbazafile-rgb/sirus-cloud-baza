@@ -1,44 +1,4 @@
 import streamlit as st
-
-# Ավտոմատ էկրանի ադապտացիա
-st.markdown(
-    """
-    <style>
-    /* --- ԱՅՍ ՄԱՍԸ ԿԱՇԽԱՏԻ ՄԻԱՅՆ ՀԵՌԱԽՈՍՆԵՐԻ ՎՐԱ --- */
-    @media (max-width: 768px) {
-        /* 1. Ավտոմատ փոքրացնում է էջի ընդհանուր տեքստի հիմնական չափսը */
-        html, body, [class*="css"], .stMarkdown p {
-            font-size: 13px !important;
-        }
-        
-        /* 2. Փոքրացնում է վիդջեթների (selectbox, inputs) պիտակները */
-        .stWidgetFormLabel div, label p {
-            font-size: 12px !important;
-        }
-        
-        /* 3. Փոքրացնում է ընտրության դաշտերի (selectbox) ներսի տեքստը */
-        .stSelectbox div[data-baseweb="select"] {
-            font-size: 12px !important;
-            min-height: 30px !important;
-        }
-        
-        /* 4. Սեղմում է տարրերի արանքի մեծ դատարկությունները (padding-ները) */
-        .element-container, .stVerticalBlock {
-            gap: 0.5rem !important;
-            margin-bottom: 2px !important;
-        }
-        
-        /* 5. Կոճակները դարձնում է ավելի կոմպակտ */
-        .stButton>button {
-            padding: 2px 10px !important;
-            font-size: 12px !important;
-            width: 100% !important; /* Հեռախոսի վրա կոճակը ամբողջ լայնությամբ է լինում, որ հարմար լինի սեղմել */
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 import requests
 import pandas as pd
 from datetime import datetime
@@ -60,8 +20,8 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.1
-st.write("<!-- v3.1 -->")
+# ՎԵՐՍԻԱ 3.2 (Ադապտացված հեռախոսների համար)
+st.write("")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -114,10 +74,10 @@ if not st.session_state.authenticated:
         else: st.error("❌ Սխալ գաղտնաբառ")
     st.stop()
 
-# --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
+# --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ԱՎՏՈՄԱՏ ԱԴԱՊՏԻՎ ՍՏԱՅԼԵՐ ---
 st.markdown("""
     <style>
-    /* Մենյուի հետևի ֆոնը՝ կանաչ ու դեղին երանգների մեջ */
+    /* Գլխավոր Մենյուի ստանդարտ տեսքը (PC) */
     .sticky-nav {
         position: fixed; top: 0; left: 0; right: 0; 
         background: linear-gradient(135deg, #1b4332 0%, #aacc00 100%); 
@@ -128,19 +88,50 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     
-    /* Աղյուսակի գլխամասի սովորական ստատիկ ստայլ */
+    /* Աղյուսակի գլխամասի ստատիկ տեսքը */
     .table-header { 
-        background-color: #9fd186; 
+        background-color: #262730; 
         padding: 10px; 
         border-radius: 5px; 
         font-weight: bold; 
         text-align: center; 
         border-bottom: 2px solid #464855; 
-        font-size: 12px; 
+        font-size: 14px; 
     }
     
-    .table-row-odd { background-color: #769472; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
-    .table-row-even { background-color: #779e7d; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-row-odd { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    .table-row-even { background-color: #292A34; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
+    
+    /* 📱 --- ԱՎՏՈՄԱՏ ԿԱՇԽԱՏԻ ՄԻԱՅՆ ՀԵՌԱԽՈՍՆԵՐԻ ՎՐԱ (Responsive Mobile Fixes) --- */
+    @media (max-width: 768px) {
+        /* 1. Փոքրացնում ենք մենյուի բարձրությունն ու էջի դատարկ տարածությունը */
+        .sticky-nav { padding: 5px 10px; position: static !important; }
+        .main-content { margin-top: 15px; }
+        .nav-container { padding: 6px; }
+        
+        /* 2. Կոճակները դարձնում ենք ավելի ցածր և կոմպակտ հեռախոսի համար */
+        .stButton>button { height: 32px !important; font-size: 11px !important; padding: 2px 5px !important; margin-bottom: 4px; }
+        
+        /* 3. ՓՈՔՐԱՑՆՈՒՄ ԵՆՔ ՏԱՌԵՐԻ ՉԱՓՍԵՐԸ (ԿԱՐԳԱՎԻՉԱԿՆԵՐԻ, ԻՆՖՈՅԻ և ԱՂՅՈՒՍԱԿՆԵՐԻ ՄԵՋ) */
+        .table-header { font-size: 11px !important; padding: 6px 2px !important; }
+        .table-row-odd, .table-row-even { font-size: 11px !important; padding: 5px 2px !important; min-height: 35px !important; }
+        
+        /* Վիդջեթների (selectbox, input) պիտակները (Labels) */
+        .stWidgetFormLabel div, label p, .stMarkdown p, span {
+            font-size: 11px !important;
+        }
+        
+        /* Ընտրության դաշտերի (selectbox) ներսի տեքստը */
+        .stSelectbox div[data-baseweb="select"], .stTextInput input, .stNumberInput input {
+            font-size: 11px !important;
+            min-height: 28px !important;
+        }
+
+        /* 4. Թույլ ենք տալիս, որ սյունակները հեռախոսի վրա չխառնվեն, այլ ունենան հորիզոնական scroll */
+        div[data-testid="stHorizontalBlock"] {
+            gap: 4px !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -215,8 +206,8 @@ def edit_remont_dialog(item):
         u_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=int(item.get("gumar", 0)), step=1000)
         u_work = st.text_area("🛠️ Կատարված Աշխատանք", value=item.get("katarvac_ashxatanq", ""))
         u_buy_date = st.date_input("📅 Ձեռքբերման Օր", datetime.strptime(item["dzerq_berman_date"], "%Y-%m-%d").date() if item.get("dzerq_berman_date") else datetime.now())
-        status_list = ["Ստացել եմ", "Վերանորոգման", "Պատրաստ է", "Հանձնված"]
-        u_status = st.selectbox("🚦Կարգավիճակ", status_list, index=status_list.index(item["kargavichak"]) if item.get("kargavichak") in status_list else 0)
+        status_list = ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"]
+        u_status = st.selectbox("🚦 Կարգավիճակ", status_list, index=status_list.index(item["kargavichak"]) if item.get("kargavichak") in status_list else 0)
         u_nshum = st.text_input("📌 Նշումներ", value=item.get("nshumner", ""))
 
     if st.button("💾 ԹԱՐՄԱՑՆԵԼ ՏՎՅԱԼՆԵՐԸ", type="primary"):
@@ -239,7 +230,7 @@ def delete_remont_dialog(item_id, display_id, model_name):
 
 @st.dialog("🚨 Ջնջել Ամբողջ Ապրանքների Բազան")
 def delete_all_products_dialog():
-    st.error("❗❗慢 Այս գործողությունը կջնջի ԱՊՐԱՆՔՆԵՐԻ ամբողջ բազան։")
+    st.error("❗❗ Այս գործողությունը կջնջի ԱՊՐԱՆՔՆԵՐԻ ամբողջ բազան։")
     pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (89)", type="password")
     if st.button("💥 ՋՆՋԵԼ ԱՄԲՈՂՋՈՒԹՅԱՄԲ", type="primary"):
         if pass_input == "89":
@@ -283,7 +274,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
             storage = st.text_input("💾 Հիշողություն")
             color = st.text_input("🎨 Գույն")
         with col2:
-            matakarar = st.text_input("📦 Մատակարար")
+            matakarar = st.text_input("📦 Մատակարar")
             buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.now(), key="manual_buy_date")
             nshumner = st.text_input("📌 Լրացուցիչ Նշումներ")
         st.markdown("---")
@@ -316,7 +307,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                                 "quantity": 1
                             }
                             requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
-                    if success_count > 0: st.success(f"🎉 Հաջողությամբ ավելացավ {success_count} ապրանք և գրանցվեց պատմության մեջ։"); st.balloons()
+                    if success_count > 0: st.success(f"🎉 Հաջողությամբ ավելացվեց {success_count} ապրանք և գրանցվեց պատմության մեջ։"); st.balloons()
             else: st.warning("⚠️ Լրացրեք պարտադիր դաշտերը։")
 
     with tab_excel:
