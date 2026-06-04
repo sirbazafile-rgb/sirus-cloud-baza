@@ -21,7 +21,7 @@ HEADERS = {
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
 # ՎԵՐՍԻԱ 3.0 (Մաքրված և Գաղտնաբառի համակարգով)
-st.write("<!-- v3.0 -->")
+#st.write("<!-- v3.0 -->")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
