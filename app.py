@@ -91,7 +91,7 @@ st.markdown("""
     /* Աղյուսակի գլխամասի ֆիքսում (Sticky Header) */
     .table-header { 
         position: sticky; top: 85px; z-index: 999;
-        background-color: #262730; padding: 10px; border-radius: 5px; 
+        background-color: #9fd186; padding: 10px; border-radius: 5px; 
         font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; 
     }
     
