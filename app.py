@@ -8,7 +8,7 @@ SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
 SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 PRODUCTS_TABLE = "products"
 REMONT_TABLE = "remont"
-HISTORY_TABLE = "purchase_history"  # ՈՒՂՂՎԱԾ Է
+HISTORY_TABLE = "purchase_history"
 SETTINGS_TABLE = "system_settings"
 
 HEADERS = {
@@ -20,8 +20,8 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.2
-st.write("<!-- v3.2 -->")
+# ՎԵՐՍԻԱ 3.3
+st.write("<!-- v3.3 -->")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -88,21 +88,20 @@ st.markdown("""
     .stButton>button { width: 100%; border-radius: 8px; height: 40px; font-weight: bold; }
     .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     
-    /* Աղյուսակի գլխամասի ստանդարտ ստայլ */
+    /* ՃՇԳՐԻՏ STICKY ԳԼԽԱՄԱՍԻ ՍՏԱՅԼԸ */
     .table-header { 
-        background-color: #262730; padding: 10px; border-radius: 5px; 
-        font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; 
-    }
-    
-    /* Ստեղծում ենք հատուկ ֆիքսված կոնտեյներ գլխամասի շարքի համար */
-    .sticky-table-header {
-        position: fixed;
-        top: 85px;
-        left: 45px;
-        right: 45px;
-        z-index: 9999;
-        background-color: #0e1117;
-        padding-bottom: 10px;
+        position: -webkit-sticky;
+        position: sticky;
+        top: 95px; /* Մենյուից մի փոքր ներքև */
+        z-index: 99999;
+        background-color: #262730; 
+        padding: 10px; 
+        border-radius: 5px; 
+        font-weight: bold; 
+        text-align: center; 
+        border-bottom: 2px solid #464855; 
+        font-size: 14px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     
     .table-row-odd { background-color: #1E1E24; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
@@ -266,7 +265,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                     success_count = 0
                     full_model_title = f"{model} {storage} {color}".strip()
                     for imei in imei_list:
-                        # 1. PRODUCTS աղյուսակ
                         prod_payload = {
                             "category": category, "model": model, "storage": storage if storage else None, 
                             "color": color if color else None, "imei": imei,
@@ -275,7 +273,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                         res = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=prod_payload)
                         if res.status_code in [200, 201]: 
                             success_count += 1
-                            # 2. PURCHASE_HISTORY աղյուսակ
                             hist_payload = {
                                 "date": str(buy_date), 
                                 "category": category, 
@@ -316,7 +313,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                             success_excel_count += 1
                             ex_date = str(row_data['buy_date']) if 'buy_date' in row_data and pd.notna(row_data['buy_date']) else str(datetime.now().date())
                             ex_model = f"{row_data['model']} {row_data['storage'] if 'storage' in row_data and pd.notna(row_data['storage']) else ''}".strip()
-                            # PURCHASE_HISTORY Excel-ի համար
                             excel_hist_payload = {
                                 "date": ex_date, "category": cat_val, "model": ex_model, "imei": clean_imei, "quantity": 1
                             }
@@ -389,13 +385,12 @@ elif st.session_state.page == "baza":
                 q = search_prod_query.strip().lower()
                 products_data = [r for r in products_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower()]
             
-            # --- STICKY HEADER ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ ---
-            st.markdown('<div class="sticky-table-header">', unsafe_allow_html=True)
+            # --- ԱՊՐԱՆՔՆԵՐԻ ԳԼԽԱՄԱՍ ---
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
             for idx, h in enumerate(headers_text): p_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
-            st.markdown('</div><div style="margin-top: 55px;"></div>', unsafe_allow_html=True)
             
+            # Տողեր
             for idx, row in enumerate(products_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
                 display_id = idx + 1; row['display_id'] = display_id
@@ -421,13 +416,12 @@ elif st.session_state.page == "baza":
                 q = search_rem_query.strip().lower()
                 remont_data = [r for r in remont_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower() or q in str(r.get('kampania','')).lower()]
             
-            # --- STICKY HEADER ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ՀԱՄԱՐ ---
-            st.markdown('<div class="sticky-table-header">', unsafe_allow_html=True)
+            # --- ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ԳԼԽԱՄԱՍ ---
             rem_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
             headers_rem = ["🆔 ID", "📝 Մոդել", "🔢 IMEI", "🏢 Կամպանիա", "💵 Գումար", "🚦 Կարգավիճակ", "📱 Ինֆո", "📝 Ուղղել", "🗑️ Ջնջել"]
             for idx, h in enumerate(headers_rem): rem_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
-            st.markdown('</div><div style="margin-top: 55px;"></div>', unsafe_allow_html=True)
             
+            # Տողեր
             for idx, rem_item in enumerate(remont_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
                 display_id = idx + 1; rem_item['display_id'] = display_id
@@ -458,13 +452,12 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
     if res_hist.status_code == 200 and res_hist.json():
         h_data = res_hist.json()
         
-        # --- STICKY HEADER ՊԱՏՄՈՒԹՅՈՒՆ ԷՋԻ ՀԱՄԱՐ ---
-        st.markdown('<div class="sticky-table-header">', unsafe_allow_html=True)
+        # --- ՊԱՏՄՈՒԹՅԱՆ ԳԼԽԱՄԱՍ ---
         h_cols = st.columns([1, 2, 3, 3, 1, 2])
         headers_hist = ["🆔 ID", "📅 Ամսաթիվ", "📝 Ապրանք / Մոդել", "🔢 IMEI", "📦 Քանակ", "📁 Խումբ"]
         for idx, h in enumerate(headers_hist): h_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
-        st.markdown('</div><div style="margin-top: 55px;"></div>', unsafe_allow_html=True)
         
+        # Տողեր
         for idx, h_item in enumerate(h_data):
             row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
             r_cols = st.columns([1, 2, 3, 3, 1, 2])
