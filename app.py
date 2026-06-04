@@ -1,4 +1,44 @@
 import streamlit as st
+
+# Ավտոմատ էկրանի ադապտացիա
+st.markdown(
+    """
+    <style>
+    /* --- ԱՅՍ ՄԱՍԸ ԿԱՇԽԱՏԻ ՄԻԱՅՆ ՀԵՌԱԽՈՍՆԵՐԻ ՎՐԱ --- */
+    @media (max-width: 768px) {
+        /* 1. Ավտոմատ փոքրացնում է էջի ընդհանուր տեքստի հիմնական չափսը */
+        html, body, [class*="css"], .stMarkdown p {
+            font-size: 13px !important;
+        }
+        
+        /* 2. Փոքրացնում է վիդջեթների (selectbox, inputs) պիտակները */
+        .stWidgetFormLabel div, label p {
+            font-size: 12px !important;
+        }
+        
+        /* 3. Փոքրացնում է ընտրության դաշտերի (selectbox) ներսի տեքստը */
+        .stSelectbox div[data-baseweb="select"] {
+            font-size: 12px !important;
+            min-height: 30px !important;
+        }
+        
+        /* 4. Սեղմում է տարրերի արանքի մեծ դատարկությունները (padding-ները) */
+        .element-container, .stVerticalBlock {
+            gap: 0.5rem !important;
+            margin-bottom: 2px !important;
+        }
+        
+        /* 5. Կոճակները դարձնում է ավելի կոմպակտ */
+        .stButton>button {
+            padding: 2px 10px !important;
+            font-size: 12px !important;
+            width: 100% !important; /* Հեռախոսի վրա կոճակը ամբողջ լայնությամբ է լինում, որ հարմար լինի սեղմել */
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 import requests
 import pandas as pd
 from datetime import datetime
