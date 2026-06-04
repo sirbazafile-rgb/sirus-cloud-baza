@@ -8,7 +8,7 @@ SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
 SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 PRODUCTS_TABLE = "products"
 REMONT_TABLE = "remont"
-HISTORY_TABLE = "purchase"  # ՈՒՂՂՎԱԾ Է․ Քո բազայի աղյուսակի ճիշտ անունը
+HISTORY_TABLE = "purchase_history"  # ՈՒՂՂՎԱԾ Է․ Քո բազայի աղյուսակի ճիշտ անունը
 SETTINGS_TABLE = "system_settings"
 
 HEADERS = {
