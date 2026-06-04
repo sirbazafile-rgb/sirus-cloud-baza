@@ -21,8 +21,8 @@ ADMIN_EMAIL = "sirbazafile@gmail.com"
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՍԱ ԹԱՐՄԱՑՄԱՆ ՀԱՄԱՐ Է (ՎԵՐՍԻԱ 2.1)
-st.write("<!-- v2.1 -->")
+# ՍԱ ԹԱՐՄԱՑՄԱՆ ՀԱՄԱՐ Է (ՎԵՐՍԻԱ 2.2)
+st.write("")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -30,7 +30,10 @@ if "role" not in st.session_state: st.session_state.role = None
 if "page" not in st.session_state: st.session_state.page = "home"
 if "remont_step2" not in st.session_state: st.session_state.remont_step2 = False
 if "found_product" not in st.session_state: st.session_state.found_product = None
-if "forgot_password_mode" not in st.session_state: st.session_state.forgot_password_mode = False
+
+# ՍԱ ՈՒՂՂՎԱԾ Է․ Ամեն անգամ էջը թարմանալիս ստիպում ենք, որ բացվի Լոգինը, այլ ոչ թե մեյլի էջը
+if "forgot_password_mode" not in st.session_state: 
+    st.session_state.forgot_password_mode = False
 
 if "admin_password" not in st.session_state: st.session_state.admin_password = "sirusadmin2026"
 if "user_password" not in st.session_state: st.session_state.user_password = "sirususer2026"
@@ -149,7 +152,7 @@ def edit_product_dialog(item):
         if res.status_code in [200, 201, 204]:
             st.success("🎉 Ապրանքի տվյալները հաջողությամբ թարմացվեցին։"); st.rerun()
 
-# --- 📝 🔧  ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
+# --- 📝 🔧   ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
 @st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
     st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
@@ -393,7 +396,7 @@ elif st.session_state.page == "baza":
                     else: st.write("🔒")
 
     with tab2:
-        search_rem_query = st.text_input("🔍 Փնտրել Վերանորոգում (Գրեք IMEI, Մոդել կամ Կամպանիա)", placeholder="Մուտքագրեք տվյալը...")
+        search_rem_query = st.text_input("🔍 Փնտրել Դեպք (Գրեք IMEI, Մոդել կամ Կամպանիա)", placeholder="Մուտքագրեք տվյալը...")
         
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
