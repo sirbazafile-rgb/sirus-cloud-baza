@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-import urllib.parse
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -45,16 +44,11 @@ def check_imei_exists(imei):
 if not st.session_state.authenticated:
     if st.session_state.forgot_password_mode:
         st.title("🔑 ԳԱՂՏՆԱԲԱՌԻ ՎԵՐԱԿԱՆԳՆՈՒՄ")
-        st.write(f"Գաղտնաբառը վերականգնելու համար սեղմեք ներքևի կոճակը։ Համակարգը կբացի Ձեր Gmail-ը, որտեղից պատրաստի նամակ կուղարկվի **{ADMIN_EMAIL}** հասցեին։")
-        
-        # Պատրաստում ենք Mailto հղումը
-        subject = "SIRUS SYSTEM - Password Recovery Request"
-        body = f"Բարև Ձեզ, ես մոռացել եմ SIRUS SYSTEM-ի գաղտնաբառը:\n\nԽնդրում եմ ուղարկել ընթացիկ գաղտնաբառերը այս էլ. փոստին:\n\nԱմսաթիվ՝ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        
-        # Կոդավորում ենք տեքստը URL-ի համար
-        mailto_url = f"mailto:{ADMIN_EMAIL}?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
-        
-        st.markdown(f'<a href="{mailto_url}" target="_blank"><button style="width:100%; background-color:#FF4B4B; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">📧 ՈՒՂԱՐԿԵԼ ՎԵՐԱԿԱՆԳՆՄԱՆ ՆԱՄԱԿ GMAIL-ՈՎ</button></a>', unsafe_allow_html=True)
+        st.info(f"📩 **Ինչպե՞ս վերականգնել գաղտնաբառը.**\n\n"
+                f"Խնդրում ենք Ձեր անձնական էլ. փոստից (Gmail) նամակ ուղարկել ադմինիստրատորին՝\n"
+                f"👉 **{ADMIN_EMAIL}** հասցեով:\n\n"
+                f"**Նամակի թեմա (Subject):** `SIRUS SYSTEM - Վերականգնում`\n"
+                f"**Նամակի տեքստում** նշեք Ձեր անունը կամ կամպանիան, որպեսզի ադմինը Ձեզ ուղարկի նոր գաղտնաբառը:")
         
         st.markdown("---")
         if st.button("⬅️ Հետ գնալ դեպի Մուտք"):
@@ -100,6 +94,7 @@ st.markdown("""
 st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
+# Navigation ըստ Դերերի (Admin / User)
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6, menu_col7 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 0.6, 0.8])
     with menu_col1:
@@ -115,6 +110,13 @@ if st.session_state.role == "admin":
     with menu_col6:
         if st.button("⚙️"): st.session_state.page = "settings"; st.rerun()
     with menu_col7:
+        if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
+else:
+    # USER MODE MENU (Ավելացված է ԵԼՔ կոճակը)
+    menu_col1, menu_col2 = st.columns([5, 1])
+    with menu_col1:
+        st.markdown("<h4 style='margin:0; padding-top:5px; color:#4E9F3D;'>📱 SIRUS SYSTEM (User Mode)</h4>", unsafe_allow_html=True)
+    with menu_col2:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
@@ -359,14 +361,28 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
+    
+    # === TAB 1: ԱՊՐԱՆՔՆԵՐ ===
     with tab1:
         if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): delete_all_products_dialog()
+        
+        # 🔍 ՈՐՈՆՄԱՆ ԴԱՇՏ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ
+        search_prod_query = st.text_input("🔍 Փնտրել Ապրանք (Գրեք IMEI կամ Մոդել)", placeholder="Մուտքագրեք տվյալը...")
+        
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
+            products_data = res.json()
+            
+            # Ֆիլտրացիա ըստ որոնման
+            if search_prod_query.strip():
+                q = search_prod_query.strip().lower()
+                products_data = [r for r in products_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower()]
+            
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
             for idx, h in enumerate(headers_text): p_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
-            for idx, row in enumerate(res.json()):
+            
+            for idx, row in enumerate(products_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
                 display_id = idx + 1; row['display_id'] = display_id
                 r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
@@ -378,15 +394,30 @@ elif st.session_state.page == "baza":
                 r_cols[5].markdown(f"<div class='{row_style}'>{row.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
                 r_cols[6].markdown(f"<div class='{row_style}'>{row['buy_date'] if row['buy_date'] else '֊'}</div>", unsafe_allow_html=True)
                 with r_cols[7]:
-                    if st.session_state.role == "admin" and st.button("📝", key=f"edit_p_{row['id']}"): edit_product_dialog(row)
+                    if st.session_state.role == "admin":
+                        if st.button("📝", key=f"edit_p_{row['id']}"): edit_product_dialog(row)
+                    else:
+                        st.write("🔒")
 
+    # === TAB 2: ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ ===
     with tab2:
+        # 🔍 ՈՐՈՆՄԱՆ ԴԱՇՏ ՎԵՐԱՆՈՐՈԳՄԱՆ ՀԱՄԱՐ
+        search_rem_query = st.text_input("🔍 Փնտրել Վերանորոգում (Գրեք IMEI, Մոդել կամ Կամպանիա)", placeholder="Մուտքագրեք տվյալը...")
+        
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
+            remont_data = res_rem.json()
+            
+            # Ֆիլտրացիա ըստ որոնման
+            if search_rem_query.strip():
+                q = search_rem_query.strip().lower()
+                remont_data = [r for r in remont_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower() or q in str(r.get('kampania','')).lower()]
+            
             rem_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
             headers_rem = ["🆔 ID", "📝 Մոդել", "🔢 IMEI", "🏢 Կամպանիա", "💵 Գումար", "🚦 Կարգավիճակ", "📱 Ինֆո", "📝 Ուղղել", "🗑️ Ջնջել"]
             for idx, h in enumerate(headers_rem): rem_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
-            for idx, rem_item in enumerate(res_rem.json()):
+            
+            for idx, rem_item in enumerate(remont_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
                 display_id = idx + 1; rem_item['display_id'] = display_id
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
@@ -400,9 +431,13 @@ elif st.session_state.page == "baza":
                 with r_cols[6]:
                     if st.button("👁️", key=f"v_{rem_item['id']}"): show_details_dialog(rem_item)
                 with r_cols[7]:
-                    if st.session_state.role == "admin" and st.button("📝", key=f"e_{rem_item['id']}"): edit_remont_dialog(rem_item)
+                    if st.session_state.role == "admin":
+                        if st.button("📝", key=f"e_{rem_item['id']}"): edit_remont_dialog(rem_item)
+                    else: st.write("🔒")
                 with r_cols[8]:
-                    if st.session_state.role == "admin" and st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
+                    if st.session_state.role == "admin":
+                        if st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
+                    else: st.write("🔒")
 
 # --- 5. 📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ ---
 elif st.session_state.page == "history" and st.session_state.role == "admin":
@@ -414,7 +449,7 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
         if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
         st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
 
-# --- ⚙️ 6. ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԲԱԺԻՆ (ՊԱՐԶԵՑՎԱԾ) ---
+# --- ⚙️ 6. ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԲԱԺԻՆ ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
     st.title("⚙️ ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
     st.markdown("### 🔒 Գաղտնաբառերի Կառավարում")
