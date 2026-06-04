@@ -5,3 +5,4 @@ pyzbar
 Pillow
 streamlit-webrtc
 opencv-python-headless
+openpyxl
