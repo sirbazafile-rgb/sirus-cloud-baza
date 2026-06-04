@@ -340,29 +340,64 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 st.error(f"❌ Սխալ. {e}")
 
 # --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ ---
+# --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ ---
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
-    st.title("🔧 signatures ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
+    st.title("🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
+    
     search_imei = st.text_input("🔢 Գրիր կամ սկանավորիր IMEI-ն")
-    if st.button("🔍 ՓՆՏՐԵԼ ԲԱԶԱՅՈՒՄ"):
-        if search_imei:
-            res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}", headers=HEADERS)
-            if res.status_code == 200 and len(res.json()) > 0: 
-                st.session_state.found_product = res.json()[0]
-            else: 
-                st.error("❌ Ապրանք չգտնվեց։")
-
-    if st.session_state.found_product:
-        prod = st.session_state.found_product
-        st.markdown(f"### 📱 Գտնվել է՝ {prod.get('model')}")
-        if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՎԵՐԱՆՈՐՈԳՈՒՄ", type="primary"): 
+    
+    col_btn1, col_btn2 = st.columns([1, 1])
+    with col_btn1:
+        if st.button("🔍 ՓՆՏՐԵԼ ԲԱԶԱՅՈՒՄ"):
+            if search_imei:
+                # 1. Ստուգում ենք՝ արդյոք էս IMEI-ով հեռախոս արդեն եղել է վերանորոգման բազայում
+                res_remont_check = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{search_imei}&order=id.desc", headers=HEADERS)
+                
+                # 2. Զուգահեռ ստուգում ենք նաև հիմնական ապրանքների բազան
+                res_prod = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}", headers=HEADERS)
+                
+                # Եթե գտնվել է ռեմոնտի պատմության մեջ
+                if res_remont_check.status_code == 200 and len(res_remont_check.json()) > 0:
+                    past_remont = res_remont_check.json()[0]
+                    st.warning(f"⚠️ Այս հեռախոսը ԱՐԴԵՆ ԵՂԵԼ Է վերանորոգման մեջ ({past_remont['received_date']}-ին)։")
+                    st.info(f"📋 Հին խնդիրը՝ {past_remont.get('xndir', 'Նշված չէ')} | Կատարված աշխատանքը՝ {past_remont.get('katarvac_ashxatanq', 'Նշված չէ')}")
+                    
+                    # Որպես սկզբնական տվյալ վերցնում ենք ռեմոնտի եղած տվյալները
+                    st.session_state.found_product = {
+                        "model": past_remont.get("model", ""),
+                        "imei": search_imei
+                    }
+                    st.session_state.remont_step2 = True
+                
+                # Եթե ռեմոնտում չկա, բայց ապրանքների մեջ կա
+                elif res_prod.status_code == 200 and len(res_prod.json()) > 0:
+                    st.session_state.found_product = res_prod.json()[0]
+                    st.session_state.remont_step2 = True
+                    st.success(f"📱 Ապրանքը առաջին անգամ է ռեմոնտ գալիս։ Գտնվեց ապրանքների բազայում՝ {st.session_state.found_product.get('model')}")
+                
+                # Եթե ոչ մի տեղ չկա
+                else:
+                    st.session_state.found_product = None
+                    st.warning("⚠️ Այս IMEI-ով ապրանք չգտնվեց ո՛չ ապրանքների, ո՛չ ռեմոնտների բազայում։")
+    
+    with col_btn2:
+        if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՁԵՌՔՈՎ (ԱՌԱՆՑ ՓՆՏՐԵԼՈՒ)"):
+            st.session_state.found_product = {"model": "", "storage": "", "imei": search_imei}
             st.session_state.remont_step2 = True
 
-    if st.session_state.remont_step2 and st.session_state.found_product:
+    st.markdown("---")
+
+    # Ռեմոնտի ձևաթուղթը (Form)
+    if st.session_state.remont_step2 and st.session_state.found_product is not None:
         prod = st.session_state.found_product
         col1, col2 = st.columns(2)
         with col1:
-            model_input = st.text_input("📝 Մոդել", value=f"{prod.get('model', '')} {prod.get('storage', '')}".strip())
-            imei_input = st.text_input("🔢 IMEI", value=prod.get("imei"))
+            initial_model = prod.get('model', '')
+            if prod.get('storage'):
+                initial_model = f"{initial_model} {prod.get('storage')}".strip()
+                
+            model_input = st.text_input("📝 Մոդել", value=initial_model)
+            imei_input = st.text_input("🔢 IMEI", value=prod.get("imei", search_imei))
             received_date = st.date_input("📅 Ստացման Ամսաթիվ", datetime.now())
             kampania = st.text_input("🏢 Կամպանիա")
             xndir = st.text_area("❌ Խնդիր")
@@ -379,11 +414,15 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 "xndir": xndir, "gumar": gumar, "komplekt": vcharman_tesak, "katarvac_ashxatanq": katarvac_ashxatanq, 
                 "dzerq_berman_date": str(dzerq_date), "kargavichak": kargavichak
             }
-            if requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload).status_code in [200, 201]:
+            res_post = requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload)
+            if res_post.status_code in [200, 201]:
                 st.success("🎉 Ռեմոնտը հաջողությամբ գրանցվեց։")
                 st.session_state.remont_step2 = False
                 st.session_state.found_product = None
-
+                st.sidebar.success("Տվյալները թարմացվում են...")
+                st.rerun()
+            else:
+                st.error(f"❌ Սխալ տեղի ունեցավ բազա գրելիս։ Status: {res_post.status_code}")
 # --- 4. 📊 SIRUS CLOUD BAZA ---
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
