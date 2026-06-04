@@ -21,6 +21,9 @@ ADMIN_EMAIL = "sirbazafile@gmail.com"
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
+# ՍԱ ԹԱՐՄԱՑՄԱՆ ՀԱՄԱՐ Է (ՎԵՐՍԻԱ 2.1)
+st.write("<!-- v2.1 -->")
+
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
 if "role" not in st.session_state: st.session_state.role = None
@@ -29,11 +32,9 @@ if "remont_step2" not in st.session_state: st.session_state.remont_step2 = False
 if "found_product" not in st.session_state: st.session_state.found_product = None
 if "forgot_password_mode" not in st.session_state: st.session_state.forgot_password_mode = False
 
-# Գաղտնաբառերը պահում ենք սեսիայի մեջ
 if "admin_password" not in st.session_state: st.session_state.admin_password = "sirusadmin2026"
 if "user_password" not in st.session_state: st.session_state.user_password = "sirususer2026"
 
-# Ֆունկցիա՝ IMEI-ի գոյությունը բազայում ստուգելու համար
 def check_imei_exists(imei):
     res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{imei}", headers=HEADERS)
     if res.status_code == 200 and len(res.json()) > 0:
@@ -94,7 +95,6 @@ st.markdown("""
 st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
-# Navigation ըստ Դերերի (Admin / User)
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6, menu_col7 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 0.6, 0.8])
     with menu_col1:
@@ -112,7 +112,6 @@ if st.session_state.role == "admin":
     with menu_col7:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 else:
-    # USER MODE MENU (Ավելացված է ԵԼՔ կոճակը)
     menu_col1, menu_col2 = st.columns([5, 1])
     with menu_col1:
         st.markdown("<h4 style='margin:0; padding-top:5px; color:#4E9F3D;'>📱 SIRUS SYSTEM (User Mode)</h4>", unsafe_allow_html=True)
@@ -150,7 +149,7 @@ def edit_product_dialog(item):
         if res.status_code in [200, 201, 204]:
             st.success("🎉 Ապրանքի տվյալները հաջողությամբ թարմացվեցին։"); st.rerun()
 
-# --- 📝 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
+# --- 📝 🔧  ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
 @st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
     st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
@@ -362,18 +361,13 @@ elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
     
-    # === TAB 1: ԱՊՐԱՆՔՆԵՐ ===
     with tab1:
         if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): delete_all_products_dialog()
-        
-        # 🔍 ՈՐՈՆՄԱՆ ԴԱՇՏ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ
         search_prod_query = st.text_input("🔍 Փնտրել Ապրանք (Գրեք IMEI կամ Մոդել)", placeholder="Մուտքագրեք տվյալը...")
         
         res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res.status_code == 200 and res.json():
             products_data = res.json()
-            
-            # Ֆիլտրացիա ըստ որոնման
             if search_prod_query.strip():
                 q = search_prod_query.strip().lower()
                 products_data = [r for r in products_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower()]
@@ -396,19 +390,14 @@ elif st.session_state.page == "baza":
                 with r_cols[7]:
                     if st.session_state.role == "admin":
                         if st.button("📝", key=f"edit_p_{row['id']}"): edit_product_dialog(row)
-                    else:
-                        st.write("🔒")
+                    else: st.write("🔒")
 
-    # === TAB 2: ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ ===
     with tab2:
-        # 🔍 ՈՐՈՆՄԱՆ ԴԱՇՏ ՎԵՐԱՆՈՐՈԳՄԱՆ ՀԱՄԱՐ
         search_rem_query = st.text_input("🔍 Փնտրել Վերանորոգում (Գրեք IMEI, Մոդել կամ Կամպանիա)", placeholder="Մուտքագրեք տվյալը...")
         
         res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
         if res_rem.status_code == 200 and res_rem.json():
             remont_data = res_rem.json()
-            
-            # Ֆիլտրացիա ըստ որոնման
             if search_rem_query.strip():
                 q = search_rem_query.strip().lower()
                 remont_data = [r for r in remont_data if q in str(r.get('imei','')).lower() or q in str(r.get('model','')).lower() or q in str(r.get('kampania','')).lower()]
@@ -439,52 +428,34 @@ elif st.session_state.page == "baza":
                         if st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
                     else: st.write("🔒")
 
-# --- 5. 📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ ---
+# --- 5. 📜 ՊԱՏՄՈՒԹՅՈՒՆ ---
 elif st.session_state.page == "history" and st.session_state.role == "admin":
-    st.title("📜 ՁԵՌՔԲԵՐՄԱՆ ՊԱՏՄՈՒԹՅՈՒՆ")
+    st.title("📜 ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅՈՒՆ")
     res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc", headers=HEADERS)
     if res_hist.status_code == 200 and res_hist.json():
-        df_hist = pd.DataFrame(res_hist.json())
-        df_hist_clean = df_hist.rename(columns={'date': '📅 Ամսաթիվ', 'category': '📁 Խումբ', 'model': '📝 Մոդել', 'imei': '🔢 IMEI', 'quantity': '📦 Քանակ', 'matakarar': '🏢 Մատակարար'})
-        if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
-        st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
+        h_data = res_hist.json()
+        h_cols = st.columns([1, 1.5, 3, 2.5, 1, 2])
+        headers_hist = ["🆔 ID", "📅 Ամսաթիվ", "📝 Ապրանք / Մոդել", "🔢 IMEI", "📦 Քանակ", "📦 Մատակարար"]
+        for idx, h in enumerate(headers_hist): h_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
+        for idx, h_item in enumerate(h_data):
+            row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
+            r_cols = st.columns([1, 1.5, 3, 2.5, 1, 2])
+            r_cols[0].markdown(f"<div class='{row_style}'><code>{idx+1}</code></div>", unsafe_allow_html=True)
+            r_cols[1].markdown(f"<div class='{row_style}'>{h_item['date']}</div>", unsafe_allow_html=True)
+            r_cols[2].markdown(f"<div class='{row_style}'><b>{h_item['model']}</b></div>", unsafe_allow_html=True)
+            r_cols[3].markdown(f"<div class='{row_style}'><code>{h_item['imei']}</code></div>", unsafe_allow_html=True)
+            r_cols[4].markdown(f"<div class='{row_style}'>{h_item['quantity']} հատ</div>", unsafe_allow_html=True)
+            r_cols[5].markdown(f"<div class='{row_style}'>{h_item['matakarar']}</div>", unsafe_allow_html=True)
 
-# --- ⚙️ 6. ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԲԱԺԻՆ ---
+# --- 6. ⚙️ ՍԱԶԱՆԴՈՒՄՆԵՐ (ԳԱՂՏՆԱԲԱՌԵՐԻ ՓՈՓՈԽՈՒՄ) ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
     st.title("⚙️ ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
-    st.markdown("### 🔒 Գաղտնաբառերի Կառավարում")
-    
-    col_p1, col_p2 = st.columns(2)
-    
-    # --- USER PASS ---
-    with col_p1:
-        st.subheader("👤 Օգտատիրոջ (User) Գաղտնաբառ")
-        new_user_pass = st.text_input("Մուտքագրեք նոր User Գաղտնաբառ", type="password", key="new_u_pass")
-        if st.button("💾 Փոխել User-ի Պասվորդը", type="secondary"):
-            if new_user_pass.strip():
-                st.session_state.user_password = new_user_pass.strip()
-                st.success("🎉 User-ի գաղտնաբառը հաջողությամբ թարմացվեց։")
-            else:
-                st.warning("⚠️ Խնդրում ենք դաշտը դատարկ չթողնել։")
-            
-    # --- ADMIN PASS ---
-    with col_p2:
-        st.subheader("👑 Ադմինիստրատորի (Admin) Գաղտնաբառ")
-        old_admin_pass = st.text_input("Մուտքագրեք ՆԱԽԿԻՆ (Հին) Գաղտնաբառը", type="password", key="old_a_pass")
-        new_admin_pass = st.text_input("Մուտքագրեք ՆՈՐ Գաղտնաբառը", type="password", key="new_a_pass")
-        confirm_admin_pass = st.text_input("Կրկնեք ՆՈՐ Գաղտնաբառը", type="password", key="conf_a_pass")
-        
-        if st.button("🔒 Փոխել Admin-ի Պասվորդը", type="primary"):
-            if not old_admin_pass or not new_admin_pass or not confirm_admin_pass:
-                st.warning("⚠️ Խնդրում ենք լրացնել բոլոր երեք դաշտերը։")
-            elif old_admin_pass != st.session_state.admin_password:
-                st.error("❌ Հին գաղտնաբառը սխալ է մուտքագրված։")
-            elif new_admin_pass != confirm_admin_pass:
-                st.error("❌ Նոր գաղտնաբառերը չեն համընկնում (կրկնությունը սխալ է)։")
-            elif len(new_admin_pass.strip()) < 4:
-                st.warning("⚠️ Նոր գաղտնաբառը պետք է լինի նվազագույնը 4 նիշ։")
-            else:
-                st.session_state.admin_password = new_admin_pass.strip()
-                st.success("🎉 Ադմինի գաղտնաբառը հաջողությամբ փոխվեց։")
+    st.subheader("🔑 Գաղտնաբառերի Փոփոխում")
+    new_admin_pass = st.text_input("Նոր Ադմինի Գաղտնաբառ", value=st.session_state.admin_password, type="password")
+    new_user_pass = st.text_input("Նոր Յուզերի Գաղտնաբառ", value=st.session_state.user_password, type="password")
+    if st.button("💾 ՊԱՀՊԱՆԵԼ ԳԱՂՏՆԱԲԱՌԵՐԸ", type="primary"):
+        st.session_state.admin_password = new_admin_pass
+        st.session_state.user_password = new_user_pass
+        st.success("🎉 Գաղտնաբառերը հաջողությամբ փոխվեցին համակարգում։")
 
 st.markdown('</div>', unsafe_allow_html=True)
