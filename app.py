@@ -20,8 +20,8 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.3 (Անհատական սյունակների ֆիլտրերով)
-st.write("")
+# ՎԵՐՍԻԱ 3.4 (Բոլոր բազաներում անհատական սյունակների ֆիլտրերով)
+st.write("<!-- v3.4 -->")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -175,7 +175,7 @@ def edit_product_dialog(item):
         res = requests.patch(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=eq.{item['id']}", headers=HEADERS, json=update_payload)
         if res.status_code in [200, 201, 204]: st.success("🎉 Թարմացվեց։"); st.rerun()
 
-@st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
+@st.dialog("📝 Դեպքի Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
     st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
     col1, col2 = st.columns(2)
@@ -186,7 +186,7 @@ def edit_remont_dialog(item):
         u_kampania = st.text_input("🏢 Կամպանիա", value=item.get("kampania", ""))
         u_xndir = st.text_area("❌ Խնդիր", value=item.get("xndir", ""))
     with col2:
-        u_komplekt = st.selectbox("💳 Վճարման Տեսակ", ["Կանխիկ", "Անկանխիկ"], index=0 if item.get("komplekt") == "Կանխիկ" else 1)
+        u_komplekt = st.selectbox("💳 Դրամարկղ / Վճարում", ["Կանխիկ", "Անկանխիկ"], index=0 if item.get("komplekt") == "Կանխիկ" else 1)
         u_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=int(item.get("gumar", 0)), step=1000)
         u_work = st.text_area("🛠️ Կատարված Աշխատանք", value=item.get("katarvac_ashxatanq", ""))
         u_buy_date = st.date_input("📅 Ձեռքբերման Օր", datetime.strptime(item["dzerq_berman_date"], "%Y-%m-%d").date() if item.get("dzerq_berman_date") else datetime.now())
@@ -400,7 +400,7 @@ elif st.session_state.page == "baza":
         if res.status_code == 200 and res.json():
             products_data = res.json()
             
-            # Ֆիլտրման տրամաբանություն (Python-ի մակարդակով)
+            # Ֆիլտրման տրամաբանություն
             if f_p_model: products_data = [r for r in products_data if f_p_model.lower() in str(r.get('model','')).lower()]
             if f_p_storage: products_data = [r for r in products_data if f_p_storage.lower() in str(r.get('storage','')).lower()]
             if f_p_color: products_data = [r for r in products_data if f_p_color.lower() in str(r.get('color','')).lower()]
@@ -475,10 +475,25 @@ elif st.session_state.page == "baza":
 # --- 5. 📜 ՊԱՏՄՈՒԹՅՈՒՆ ---
 elif st.session_state.page == "history" and st.session_state.role == "admin":
     st.title("📜 ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅՈՒՆ")
+    
+    # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅԱՆ ՀԱՄԱՐ ---
+    st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
+    f_h_cols = st.columns([1, 2, 3, 3, 1, 2])
+    with f_h_cols[1]: f_h_date = st.text_input("Ֆիլտր Օր", placeholder="🔍...", label_visibility="collapsed", key="f_h_dt")
+    with f_h_cols[2]: f_h_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_h_mod")
+    with f_h_cols[3]: f_h_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_h_im")
+    with f_h_cols[5]: f_h_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_h_ct")
+    
     res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc", headers=HEADERS)
     
     if res_hist.status_code == 200 and res_hist.json():
         h_data = res_hist.json()
+        
+        # Ֆիլտրման տրամաբանություն
+        if f_h_date: h_data = [r for r in h_data if f_h_date.lower() in str(r.get('date','')).lower()]
+        if f_h_model: h_data = [r for r in h_data if f_h_model.lower() in str(r.get('model','')).lower()]
+        if f_h_imei: h_data = [r for r in h_data if f_h_imei.lower() in str(r.get('imei','')).lower()]
+        if f_h_cat: h_data = [r for r in h_data if f_h_cat.lower() in str(r.get('category','')).lower()]
         
         h_cols = st.columns([1, 2, 3, 3, 1, 2])
         headers_hist = ["🆔 ID", "📅 Ամսաթիվ", "📝 Ապրանք / Մոդել", "🔢 IMEI", "📦 Քանակ", "📁 Խումբ"]
@@ -494,7 +509,7 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
             r_cols[4].markdown(f"<div class='{row_style}'>{h_item.get('quantity', 1)} հատ</div>", unsafe_allow_html=True)
             r_cols[5].markdown(f"<div class='{row_style}'>{h_item.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
     else:
-        st.info("ℹ️ Գնումների պատմությունը դատարկ է։ Նոր ապրանք ավելացնելիս այն կգրանցվի այստեղ։")
+        st.info("ℹ️ Գնումների պատմությունը դատարկ է կամ համընկնող տվյալ չգտնվեց։")
 
 # --- 6. ⚙️ ՍԱԶԱՆԴՈՒՄՆԵՐ ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
