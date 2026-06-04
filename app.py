@@ -9,6 +9,7 @@ SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
 PRODUCTS_TABLE = "products"
 REMONT_TABLE = "remont"
 HISTORY_TABLE = "purchase_history"
+SETTINGS_TABLE = "system_settings" # Նոր աղյուսակ բազայում գաղտնաբառերը պահելու համար
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -17,12 +18,10 @@ HEADERS = {
     "Prefer": "return=representation"
 }
 
-ADMIN_EMAIL = "sirbazafile@gmail.com"
-
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՍԱ ԹԱՐՄԱՑՄԱՆ ՀԱՄԱՐ Է (ՎԵՐՍԻԱ 2.2)
-st.write("")
+# ՎԵՐՍԻԱ 3.0 (Մաքրված և Գաղտնաբառի համակարգով)
+st.write("<!-- v3.0 -->")
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
@@ -31,12 +30,31 @@ if "page" not in st.session_state: st.session_state.page = "home"
 if "remont_step2" not in st.session_state: st.session_state.remont_step2 = False
 if "found_product" not in st.session_state: st.session_state.found_product = None
 
-# ՍԱ ՈՒՂՂՎԱԾ Է․ Ամեն անգամ էջը թարմանալիս ստիպում ենք, որ բացվի Լոգինը, այլ ոչ թե մեյլի էջը
-if "forgot_password_mode" not in st.session_state: 
-    st.session_state.forgot_password_mode = False
+# Ֆունկցիա՝ Բազայից գաղտնաբառերը կարդալու համար
+def load_passwords():
+    try:
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS)
+        if res.status_code == 200 and len(res.json()) > 0:
+            data = res.json()[0]
+            return data.get("admin_password", "sirusadmin2026"), data.get("user_password", "sirususer2026")
+    except:
+        pass
+    return "sirusadmin2026", "sirususer2026"
 
-if "admin_password" not in st.session_state: st.session_state.admin_password = "sirusadmin2026"
-if "user_password" not in st.session_state: st.session_state.user_password = "sirususer2026"
+# Ֆունկցիա՝ Բազայում գաղտնաբառերը թարմացնելու համար
+def update_passwords_in_db(new_admin, new_user):
+    # Ստուգում ենք՝ արդեն կա՞ գրառում
+    res = requests.get(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS)
+    payload = {"admin_password": new_admin, "user_password": new_user}
+    
+    if res.status_code == 200 and len(res.json()) > 0:
+        row_id = res.json()[0]['id']
+        requests.patch(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}?id=eq.{row_id}", headers=HEADERS, json=payload)
+    else:
+        requests.post(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS, json=payload)
+
+# Կարդում ենք գաղտնաբառերը
+ADMIN_PASSWORD, USER_PASSWORD = load_passwords()
 
 def check_imei_exists(imei):
     res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{imei}", headers=HEADERS)
@@ -44,39 +62,25 @@ def check_imei_exists(imei):
         return True
     return False
 
-# --- 🔐 ՄՈՒՏՔԻ ԵՎ ՎԵՐԱԿԱՆԳՆՄԱՆ ԷՋ ---
+# --- 🔒 ՄՈՒՏՔԻ ԷՋ (ԼՐԻՎ ՄԱՔՐՎԱԾ ՈՒ ՄԻԱՅՆ ԳԱՂՏՆԱԲԱՌՈՎ) ---
 if not st.session_state.authenticated:
-    if st.session_state.forgot_password_mode:
-        st.title("🔑 ԳԱՂՏՆԱԲԱՌԻ ՎԵՐԱԿԱՆԳՆՈՒՄ")
-        st.info(f"📩 **Ինչպե՞ս վերականգնել գաղտնաբառը.**\n\n"
-                f"Խնդրում ենք Ձեր անձնական էլ. փոստից (Gmail) նամակ ուղարկել ադմինիստրատորին՝\n"
-                f"👉 **{ADMIN_EMAIL}** հասցեով:\n\n"
-                f"**Նամակի թեմա (Subject):** `SIRUS SYSTEM - Վերականգնում`\n"
-                f"**Նամակի տեքստում** նշեք Ձեր անունը կամ կամպանիան, որպեսզի ադմինը Ձեզ ուղարկի նոր գաղտնաբառը:")
-        
-        st.markdown("---")
-        if st.button("⬅️ Հետ գնալ դեպի Մուտք"):
-            st.session_state.forgot_password_mode = False
+    st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
+    input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
+    
+    if st.button("🚪 Մուտք Գործել", type="primary"):
+        if input_password == ADMIN_PASSWORD:
+            st.session_state.authenticated = True
+            st.session_state.role = "admin"
+            st.session_state.page = "home"
             st.rerun()
-        st.stop()
-        
-    else:
-        st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
-        input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
-        
-        col_login, col_forgot = st.columns([2, 1])
-        with col_login:
-            if st.button("🚪 Մուտք Գործել", type="primary"):
-                if input_password == st.session_state.admin_password:
-                    st.session_state.authenticated = True; st.session_state.role = "admin"; st.session_state.page = "home"; st.rerun()
-                elif input_password == st.session_state.user_password:
-                    st.session_state.authenticated = True; st.session_state.role = "user"; st.session_state.page = "baza"; st.rerun()
-                else: st.error("❌ Սխալ գաղտնաբառ")
-        with col_forgot:
-            if st.button("❓ Մոռացել եմ պասվորդը"):
-                st.session_state.forgot_password_mode = True
-                st.rerun()
-        st.stop()
+        elif input_password == USER_PASSWORD:
+            st.session_state.authenticated = True
+            st.session_state.role = "user"
+            st.session_state.page = "baza"
+            st.rerun()
+        else:
+            st.error("❌ Սխալ գաղտնաբառ")
+    st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
 st.markdown("""
@@ -152,7 +156,7 @@ def edit_product_dialog(item):
         if res.status_code in [200, 201, 204]:
             st.success("🎉 Ապրանքի տվյալները հաջողությամբ թարմացվեցին։"); st.rerun()
 
-# --- 📝 🔧   ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
+# --- 📝 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԽՄԲԱԳՐՄԱՆ POP-UP ---
 @st.dialog("📝 Վերանորոգման Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
     st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
@@ -280,7 +284,7 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 else: df_upload = pd.read_excel(uploaded_file, dtype={'imei': str, 'storage': str})
                 df_upload = df_upload.dropna(subset=['model', 'imei'])
                 st.dataframe(df_upload, use_container_width=True)
-                if st.button("🚀 ՊԱՀՊԱՆԵԼ EXCEL-Ի ՏՎՅԱԼՆԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
+                if st.button("🚀 ՊԱՀՊ安ԵԼ EXCEL-Ի ՏՎՅԱԼՆԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
                     success_excel_count = 0
                     for index, row_data in df_upload.iterrows():
                         clean_imei = str(row_data['imei']).split('.')[0].strip()
@@ -450,15 +454,20 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
             r_cols[4].markdown(f"<div class='{row_style}'>{h_item['quantity']} հատ</div>", unsafe_allow_html=True)
             r_cols[5].markdown(f"<div class='{row_style}'>{h_item['matakarar']}</div>", unsafe_allow_html=True)
 
-# --- 6. ⚙️ ՍԱԶԱՆԴՈՒՄՆԵՐ (ԳԱՂՏՆԱԲԱՌԵՐԻ ՓՈՓՈԽՈՒՄ) ---
+# --- 6. ⚙️ ՍԱԶԱՆԴՈՒՄՆԵՐ (ԳԱՂՏՆԱԲԱՌԵՐԻ ՓՈՓՈԽՈՒՄ՝ ԲԱԶԱՅԻ ԿԱՊՈՎ) ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
     st.title("⚙️ ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
     st.subheader("🔑 Գաղտնաբառերի Փոփոխում")
-    new_admin_pass = st.text_input("Նոր Ադմինի Գաղտնաբառ", value=st.session_state.admin_password, type="password")
-    new_user_pass = st.text_input("Նոր Յուզերի Գաղտնաբառ", value=st.session_state.user_password, type="password")
-    if st.button("💾 ՊԱՀՊԱՆԵԼ ԳԱՂՏՆԱԲԱՌԵՐԸ", type="primary"):
-        st.session_state.admin_password = new_admin_pass
-        st.session_state.user_password = new_user_pass
-        st.success("🎉 Գաղտնաբառերը հաջողությամբ փոխվեցին համակարգում։")
+    
+    new_admin_pass = st.text_input("Նոր Ադմինի Գաղտնաբառ", value=ADMIN_PASSWORD, type="password")
+    new_user_pass = st.text_input("Նոր Յուզերի Գաղտնաբառ", value=USER_PASSWORD, type="password")
+    
+    if st.button("💾 ՊԱՀՊԱՆԵԼ ԳԱՂՏՆԱԲԱՌԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
+        if new_admin_pass.strip() and new_user_pass.strip():
+            update_passwords_in_db(new_admin_pass.strip(), new_user_pass.strip())
+            st.success("🎉 Գաղտնաբառերը հաջողությամբ պահպանվեցին Ամպային Բազայում (Supabase)։")
+            st.info("🔄 Փոփոխություններն ուժի մեջ մտան։")
+        else:
+            st.error("❌ Գաղտնաբառերը չեն կարող դատարկ լինել։")
 
 st.markdown('</div>', unsafe_allow_html=True)
