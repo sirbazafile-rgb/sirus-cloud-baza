@@ -3,13 +3,18 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
-SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
-SUPABASE_KEY = "sb_publishable_587nBtq5BdKGZqb8LdUjGA_2GhxqH6D"
-PRODUCTS_TABLE = "products"
-REMONT_TABLE = "remont"
-HISTORY_TABLE = "purchase_history"
-SETTINGS_TABLE = "system_settings"
+# --- 🔒 ԱՊԱՀՈՎ ՏՎՅԱԼՆԵՐԻ ՍՏԱՑՈՒՄ (SECRET-ՆԵՐԻՑ) ---
+# Կոդի մեջ այլևս ոչ մի բանալի բաց գրված չէ
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    PRODUCTS_TABLE = st.secrets["PRODUCTS_TABLE"]
+    REMONT_TABLE = st.secrets["REMONT_TABLE"]
+    HISTORY_TABLE = st.secrets["HISTORY_TABLE"]
+    SETTINGS_TABLE = st.secrets["SETTINGS_TABLE"]
+except KeyError:
+    st.error("❌ Կարգավորումների secret-ները գտնված չեն։ Ստուգեք .streamlit/secrets.toml ֆայլը կամ Cloud-ի settings-ը։")
+    st.stop()
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -20,8 +25,10 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.4 (Բոլոր բազաներում անհատական սյունակների ֆիլտրերով)
-st.write("<!-- v3.4 -->")
+# ՎԵՐՍԻԱ 3.5 (Ապահովված բանալիներով)
+st.write("<!-- v3.5 -->")
+
+# [Այստեղից հետո քո ամբողջ կոդը (Session State, Մուտքի էջ, Ֆիլտրներ, Էջեր) մնում է նույնությամբ...]
 
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
