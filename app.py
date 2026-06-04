@@ -2,9 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
-import smtplib
-import random
-from email.mime.text import MIMEText
+import urllib.parse
 
 # --- ՔՈ ԲԱԶԱՅԻ ՏՎՅԱԼՆԵՐԸ ---
 SUPABASE_URL = "https://umbgvfyczrsjfxvpyaei.supabase.co"
@@ -20,10 +18,7 @@ HEADERS = {
     "Prefer": "return=representation"
 }
 
-# --- EMAIL-Ի ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ (Gmail SMTP) ---
-# ՈՒՇԱԴՐՈՒԹՅՈՒՆ. Այստեղ պետք է տեղադրես քո App Password-ը (Տես ստորև՝ Քայլ 2)
-SENDER_EMAIL = "sirbazafile@gmail.com"
-SENDER_APP_PASSWORD = "xxxx xxxx xxxx xxxx"  # Էստեղ կգրես ստացածդ 16 նիշանոց պասվորդը
+ADMIN_EMAIL = "sirbazafile@gmail.com"
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
@@ -33,30 +28,11 @@ if "role" not in st.session_state: st.session_state.role = None
 if "page" not in st.session_state: st.session_state.page = "home"
 if "remont_step2" not in st.session_state: st.session_state.remont_step2 = False
 if "found_product" not in st.session_state: st.session_state.found_product = None
+if "forgot_password_mode" not in st.session_state: st.session_state.forgot_password_mode = False
 
-# Գաղտնաբառերը պահում ենք սեսիայի մեջ, որ ադմինը կարողանա փոխել
+# Գաղտնաբառերը պահում ենք սեսիայի մեջ
 if "admin_password" not in st.session_state: st.session_state.admin_password = "sirusadmin2026"
 if "user_password" not in st.session_state: st.session_state.user_password = "sirususer2026"
-
-# Կոդի հաստատման համար state-եր
-if "verification_code" not in st.session_state: st.session_state.verification_code = None
-if "pending_passwords" not in st.session_state: st.session_state.pending_passwords = {}
-
-# Ֆունկցիա՝ Կոդ ուղարկելու համար
-def send_verification_email(code):
-    try:
-        msg = MIMEText(f"Բարև Ձեզ:\n\nSIRUS SYSTEM-ում գաղտնաբառի փոփոխման հաստատման կոդն է՝ {code}\n\nԵթե դուք չեք կատարել այս գործողությունը, անտեսեք այս նամակը:")
-        msg['Subject'] = 'SIRUS SYSTEM - Գաղտնաբառի Փոփոխման Կոդ'
-        msg['From'] = SENDER_EMAIL
-        msg['To'] = SENDER_EMAIL # Ուղարկում ենք նույն մայլին
-
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(SENDER_EMAIL, SENDER_APP_PASSWORD)
-            server.sendmail(SENDER_EMAIL, [SENDER_EMAIL], msg.as_string())
-        return True
-    except Exception as e:
-        st.error(f"Մայլ ուղարկելու սխալ. {e}")
-        return False
 
 # Ֆունկցիա՝ IMEI-ի գոյությունը բազայում ստուգելու համար
 def check_imei_exists(imei):
@@ -65,17 +41,44 @@ def check_imei_exists(imei):
         return True
     return False
 
-# --- 🔐 ՄՈՒՏՔԻ ԷՋ ---
+# --- 🔐 ՄՈՒՏՔԻ ԵՎ ՎԵՐԱԿԱՆԳՆՄԱՆ ԷՋ ---
 if not st.session_state.authenticated:
-    st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
-    input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
-    if st.button("🚪 Մուտք Գործել", type="primary"):
-        if input_password == st.session_state.admin_password:
-            st.session_state.authenticated = True; st.session_state.role = "admin"; st.session_state.page = "home"; st.rerun()
-        elif input_password == st.session_state.user_password:
-            st.session_state.authenticated = True; st.session_state.role = "user"; st.session_state.page = "baza"; st.rerun()
-        else: st.error("❌ Սխալ գաղտնաբառ")
-    st.stop()
+    if st.session_state.forgot_password_mode:
+        st.title("🔑 ԳԱՂՏՆԱԲԱՌԻ ՎԵՐԱԿԱՆԳՆՈՒՄ")
+        st.write(f"Գաղտնաբառը վերականգնելու համար սեղմեք ներքևի կոճակը։ Համակարգը կբացի Ձեր Gmail-ը, որտեղից պատրաստի նամակ կուղարկվի **{ADMIN_EMAIL}** հասցեին։")
+        
+        # Պատրաստում ենք Mailto հղումը
+        subject = "SIRUS SYSTEM - Password Recovery Request"
+        body = f"Բարև Ձեզ, ես մոռացել եմ SIRUS SYSTEM-ի գաղտնաբառը:\n\nԽնդրում եմ ուղարկել ընթացիկ գաղտնաբառերը այս էլ. փոստին:\n\nԱմսաթիվ՝ {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        
+        # Կոդավորում ենք տեքստը URL-ի համար
+        mailto_url = f"mailto:{ADMIN_EMAIL}?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+        
+        st.markdown(f'<a href="{mailto_url}" target="_blank"><button style="width:100%; background-color:#FF4B4B; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">📧 ՈՒՂԱՐԿԵԼ ՎԵՐԱԿԱՆԳՆՄԱՆ ՆԱՄԱԿ GMAIL-ՈՎ</button></a>', unsafe_allow_html=True)
+        
+        st.markdown("---")
+        if st.button("⬅️ Հետ գնալ դեպի Մուտք"):
+            st.session_state.forgot_password_mode = False
+            st.rerun()
+        st.stop()
+        
+    else:
+        st.title("🔒 SIRUS SYSTEM - ՄՈՒՏՔ")
+        input_password = st.text_input("Գաղտնաբառ", type="password", placeholder="Գրիր պասվորդը...")
+        
+        col_login, col_forgot = st.columns([2, 1])
+        with col_login:
+            if st.button("🚪 Մուտք Գործել", type="primary"):
+                if input_password == st.session_state.admin_password:
+                    st.session_state.authenticated = True; st.session_state.role = "admin"; st.session_state.page = "home"; st.rerun()
+                elif input_password == st.session_state.user_password:
+                    st.session_state.authenticated = True; st.session_state.role = "user"; st.session_state.page = "baza"; st.rerun()
+                else: st.error("❌ Սխալ գաղտնաբառ")
+        with col_forgot:
+            if st.button("❓ Մոռացել եմ պասվորդը"):
+                st.session_state.forgot_password_mode = True
+                st.rerun()
+        st.stop()
 
 # --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ՍՏԱՅԼԵՐ ---
 st.markdown("""
@@ -411,49 +414,42 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
         if 'id' in df_hist_clean.columns: df_hist_clean = df_hist_clean.drop(columns=['id'])
         st.dataframe(df_hist_clean, use_container_width=True, hide_index=True)
 
-# --- ⚙️ 6. ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԲԱԺԻՆ (ՆՈՐ) ---
+# --- ⚙️ 6. ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԲԱԺԻՆ (ՊԱՐԶԵՑՎԱԾ) ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
     st.title("⚙️ ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
-    st.markdown("### 🔒 Գաղտնաբառերի Փոփոխում")
+    st.markdown("### 🔒 Գաղտնաբառերի Կառավարում")
     
     col_p1, col_p2 = st.columns(2)
+    
+    # --- USER PASS ---
     with col_p1:
         st.subheader("👤 Օգտատիրոջ (User) Գաղտնաբառ")
-        new_user_pass = st.text_input("Նոր User Գաղտնաբառ", type="password", key="new_u_pass")
-        if st.button("💾 Փոխել User-ի Պասվորդը"):
+        new_user_pass = st.text_input("Մուտքագրեք նոր User Գաղտնաբառ", type="password", key="new_u_pass")
+        if st.button("💾 Փոխել User-ի Պասվորդը", type="secondary"):
             if new_user_pass.strip():
                 st.session_state.user_password = new_user_pass.strip()
-                st.success("🎉 User-ի գաղտնաբառը հաջողությամբ փոխվեց սեսիայում։")
-            else: st.warning("Գրիր նոր պասվորդը")
+                st.success("🎉 User-ի գաղտնաբառը հաջողությամբ թարմացվեց։")
+            else:
+                st.warning("⚠️ Խնդրում ենք դաշտը դատարկ չթողնել։")
             
+    # --- ADMIN PASS ---
     with col_p2:
         st.subheader("👑 Ադմինիստրատորի (Admin) Գաղտնաբառ")
-        new_admin_pass = st.text_input("Նոր Admin Գաղտնաբառ", type="password", key="new_a_pass")
+        old_admin_pass = st.text_input("Մուտքագրեք ՆԱԽԿԻՆ (Հին) Գաղտնաբառը", type="password", key="old_a_pass")
+        new_admin_pass = st.text_input("Մուտքագրեք ՆՈՐ Գաղտնաբառը", type="password", key="new_a_pass")
+        confirm_admin_pass = st.text_input("Կրկնեք ՆՈՐ Գաղտնաբառը", type="password", key="conf_a_pass")
         
-        if st.button("📧 Ուղարկել Հաստատման Կոդ Մայլին", type="primary"):
-            if new_admin_pass.strip():
-                # Գեներացնում ենք 6 նիշանոց պատահական կոդ
-                generated_code = str(random.randint(100000, 999999))
-                st.session_state.verification_code = generated_code
-                st.session_state.pending_passwords['admin'] = new_admin_pass.strip()
-                
-                # Ուղարկում ենք մայլին
-                if send_verification_email(generated_code):
-                    st.info(f"📩 Հաստատման կոդն ուղարկվեց sirbazafile@gmail.com էլ. փոստին։")
-            else: st.warning("Խնդրում ենք նախ գրել նոր Admin գաղտնաբառը:")
-
-        # Եթե կոդը արդեն ուղարկված է, բացում ենք ներմուծման դաշտը
-        if st.session_state.verification_code:
-            st.markdown("---")
-            input_code = st.text_input("🔑 Մուտքագրեք Մայլին Եկած 6-նիշանոց Կոդը")
-            if st.button("✅ ՀԱՍՏԱՏԵԼ ՓՈՓՈԽՈՒԹՅՈՒՆԸ"):
-                if input_code.strip() == st.session_state.verification_code:
-                    st.session_state.admin_password = st.session_state.pending_passwords['admin']
-                    st.success("🎉 Ադմինի գաղտնաբառը հաջողությամբ թարմացվեց:")
-                    # Մաքրում ենք ժամանակավոր տվյալները
-                    st.session_state.verification_code = None
-                    st.session_state.pending_passwords = {}
-                else:
-                    st.error("❌ Սխալ հաստատման կոդ: Փորձեք նորից:")
+        if st.button("🔒 Փոխել Admin-ի Պասվորդը", type="primary"):
+            if not old_admin_pass or not new_admin_pass or not confirm_admin_pass:
+                st.warning("⚠️ Խնդրում ենք լրացնել բոլոր երեք դաշտերը։")
+            elif old_admin_pass != st.session_state.admin_password:
+                st.error("❌ Հին գաղտնաբառը սխալ է մուտքագրված։")
+            elif new_admin_pass != confirm_admin_pass:
+                st.error("❌ Նոր գաղտնաբառերը չեն համընկնում (կրկնությունը սխալ է)։")
+            elif len(new_admin_pass.strip()) < 4:
+                st.warning("⚠️ Նոր գաղտնաբառը պետք է լինի նվազագույնը 4 նիշ։")
+            else:
+                st.session_state.admin_password = new_admin_pass.strip()
+                st.success("🎉 Ադմինի գաղտնաբառը հաջողությամբ փոխվեց։")
 
 st.markdown('</div>', unsafe_allow_html=True)
