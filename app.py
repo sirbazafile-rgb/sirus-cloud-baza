@@ -89,10 +89,19 @@ st.markdown("""
     .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     
     /* Աղյուսակի գլխամասի ֆիքսում (Sticky Header) */
+   /* Աղյուսակի գլխամասի ֆիքսում (Sticky Header) */
     .table-header { 
-        position: sticky; top: 85px; z-index: 999;
-        background-color: #9fd186; padding: 10px; border-radius: 5px; 
-        font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 14px; 
+        position: -webkit-sticky; /* iOS-ի համար */
+        position: sticky; 
+        top: 60px;                /* Բարձրացրինք վերև, որ մենյուի տակից դուրս գա */
+        z-index: 9999;            /* Բարձրացրինք շերտը, որ ոչ մի տող վրայով չանցնի */
+        background-color: #262730; 
+        padding: 10px; 
+        border-radius: 5px; 
+        font-weight: bold; 
+        text-align: center; 
+        border-bottom: 2px solid #464855; 
+        font-size: 14px; 
     }
     
     .table-row-odd { background-color: #cdf007; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
