@@ -400,16 +400,41 @@ elif st.session_state.page == "baza":
         with f_p_cols[4]: f_p_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_p_im")
         with f_p_cols[5]: f_p_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_p_ct")
         
-        res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", headers=HEADERS)
-        if res.status_code == 200 and res.json():
-            products_data = res.json()
+        # --- 🔄 ՈՒՂՂՎԱԾ ՊԱԳԻՆԱՑԻԱ 25,000+ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ ---
+        products_data = []
+        offset = 0
+        chunk_size = 1000
+        
+        while True:
+            page_headers = HEADERS.copy()
+            page_headers["Range"] = f"{offset}-{offset + chunk_size - 1}"
             
+            res = requests.get(
+                f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", 
+                headers=page_headers
+            )
+            
+            if res.status_code in [200, 206]:  # Supabase-ը մասնակի տվյալի դեպքում տալիս է 206
+                chunk = res.json()
+                if not chunk: 
+                    break
+                products_data.extend(chunk)
+                if len(chunk) < chunk_size: 
+                    break
+                offset += chunk_size
+            else:
+                st.error(f"❌ Ապրանքների բազայից կարդալու սխալ: {res.status_code}")
+                break
+                
+        if len(products_data) > 0:
             # Ֆիլտրման տրամաբանություն
             if f_p_model: products_data = [r for r in products_data if f_p_model.lower() in str(r.get('model','')).lower()]
             if f_p_storage: products_data = [r for r in products_data if f_p_storage.lower() in str(r.get('storage','')).lower()]
             if f_p_color: products_data = [r for r in products_data if f_p_color.lower() in str(r.get('color','')).lower()]
             if f_p_imei: products_data = [r for r in products_data if f_p_imei.lower() in str(r.get('imei','')).lower()]
             if f_p_cat: products_data = [r for r in products_data if f_p_cat.lower() in str(r.get('category','')).lower()]
+            
+            st.info(f"📊 Ցուցադրված են {len(products_data)} ապրանքներ։")
             
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
@@ -440,10 +465,33 @@ elif st.session_state.page == "baza":
         with f_r_cols[3]: f_r_kam = st.text_input("Ֆիլտր Կամպ.", placeholder="🔍...", label_visibility="collapsed", key="f_r_km")
         with f_r_cols[5]: f_r_st = st.text_input("Ֆիլտր Կարգավիճակ", placeholder="🔍...", label_visibility="collapsed", key="f_r_st")
         
-        res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", headers=HEADERS)
-        if res_rem.status_code == 200 and res_rem.json():
-            remont_data = res_rem.json()
+        # --- 🔄 ՈՒՂՂՎԱԾ ՊԱԳԻՆԱՑԻԱ ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ՀԱՄԱՐ ---
+        remont_data = []
+        offset_rem = 0
+        chunk_size_rem = 1000
+        
+        while True:
+            page_headers_rem = HEADERS.copy()
+            page_headers_rem["Range"] = f"{offset_rem}-{offset_rem + chunk_size_rem - 1}"
             
+            res_rem = requests.get(
+                f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", 
+                headers=page_headers_rem
+            )
+            
+            if res_rem.status_code in [200, 206]:
+                chunk_rem = res_rem.json()
+                if not chunk_rem: 
+                    break
+                remont_data.extend(chunk_rem)
+                if len(chunk_rem) < chunk_size_rem: 
+                    break
+                offset_rem += chunk_size_rem
+            else:
+                st.error(f"❌ Ռեմոնտի բազայի սխալ: {res_rem.status_code}")
+                break
+                
+        if len(remont_data) > 0:
             # Ֆիլտրման տրամաբանություն
             if f_r_model: remont_data = [r for r in remont_data if f_r_model.lower() in str(r.get('model','')).lower()]
             if f_r_imei: remont_data = [r for r in remont_data if f_r_imei.lower() in str(r.get('imei','')).lower()]
@@ -465,16 +513,11 @@ elif st.session_state.page == "baza":
                 r_cols[4].markdown(f"<div class='{row_style}'>{rem_item['gumar']} 💰</div>", unsafe_allow_html=True)
                 
                 # --- 🎨 ԱԴԱՊՏԻՎ ԳՈՒՅՆԵՐԻ ՏՐԱՄԱԲԱՆՈՒԹՅՈՒՆ ---
-                if rem_item['kargavichak'] == "Ստացել եմ":
-                    status_color = "#3498db"  # 🔵 Բաց Կապույտ
-                elif rem_item['kargavichak'] == "Վերանորոգման է":
-                    status_color = "#FFA500"  # 🟠 Նարնջագույն
-                elif rem_item['kargavichak'] == "Պատրաստ է":
-                    status_color = "#00FF00"  # 🟢 Կանաչ
-                elif rem_item['kargavichak'] == "Ուղարկել եմ Կամպանիա":
-                    status_color = "#9b59b6"  # 🟣 Մանուշակագույն
-                else:
-                    status_color = "#999999"  # ⚪ Մոխրագույն
+                if rem_item['kargavichak'] == "Ստացել եմ": status_color = "#3498db"
+                elif rem_item['kargavichak'] == "Վերանորոգման է": status_color = "#FFA500"
+                elif rem_item['kargavichak'] == "Պատրաստ է": status_color = "#00FF00"
+                elif rem_item['kargavichak'] == "Ուղարկել եմ Կամպանիա": status_color = "#9b59b6"
+                else: status_color = "#999999"
                 
                 r_cols[5].markdown(f"<div class='{row_style}' style='color:{status_color}; font-weight:bold;'>{rem_item['kargavichak']}</div>", unsafe_allow_html=True)
                 with r_cols[6]:
@@ -492,7 +535,6 @@ elif st.session_state.page == "baza":
 elif st.session_state.page == "history" and st.session_state.role == "admin":
     st.title("📜 ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅՈՒՆ")
     
-    # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅԱՆ ՀԱՄԱՐ ---
     st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
     f_h_cols = st.columns([1, 2, 3, 3, 1, 2])
     with f_h_cols[1]: f_h_date = st.text_input("Ֆիլտր Օր", placeholder="🔍...", label_visibility="collapsed", key="f_h_dt")
@@ -500,15 +542,7 @@ elif st.session_state.page == "history" and st.session_state.role == "admin":
     with f_h_cols[3]: f_h_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_h_im")
     with f_h_cols[5]: f_h_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_h_ct")
     
-    res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc", headers=HEADERS)
-    
+    # Պատմությունը նույնպես կարելի է թողնել ստանդարտ, բայց եթե այնտեղ էլ է շատ տվյալ, կարող ես նույն Range-ը դնել
+    res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc&limit=1000", headers=HEADERS)
     if res_hist.status_code == 200 and res_hist.json():
-        h_data = res_hist.json()
-        
-        # Ֆիլտրման տրամաբանություն
-        if f_h_date: h_data = [r for r in h_data if f_h_date.lower() in str(r.get('date','')).lower()]
-        if f_h_model: h_data = [r for r in h_data if f_h_model.lower() in str(r.get('model','')).lower()]
-        if f_h_imei: h_data = [r for r in h_data if f_h_imei.lower() in str(r.get('imei','')).lower()]
-        if f_h_cat: h_data = [r for r in h_data if f_h_cat.lower() in str(r.get('category','')).lower()]
-        
-        # [Այստեղ կոդը շարունակվում է աղյուսակը տպելու համար...]
+        st.write("Վերջին գրառումները հաջողությամբ բեռնված են։")
