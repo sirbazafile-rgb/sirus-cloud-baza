@@ -118,9 +118,43 @@ st.markdown('</div></div>', unsafe_allow_html=True)
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 # --- Dialogs (Խմբագրման և Ջնջման Պատուհաններ) ---
+@st.dialog("🗑️ Հաստատել Նշվածների Ջնջումը")
+def delete_selected_products_dialog(ids_to_delete):
+    st.markdown(f"### ⚠️ Դուք պատրաստվում եք ջնջել {len(ids_to_delete)} հատ ընտրված ապրանք")
+    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12) հաստատելու համար", type="password", key="del_sel_pass")
+    if st.button("🗑️ ՀԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
+        if pass_input == "12":
+            with st.spinner("⏳ Ջնջվում է..."):
+                # Supabase-ում միանգամից բոլոր ID-ները ջնջել` id=in.(1,2,3) ֆորմատով
+                id_string = ",".join(map(str, ids_to_delete))
+                res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=in.({id_string})", headers=HEADERS)
+                if res.status_code in [200, 204]:
+                    st.success("🎉 Ընտրված ապրանքները ջնջվեցին բազայից։"); st.rerun()
+                else:
+                    st.error(f"❌ Սխալ։ Կոդ՝ {res.status_code}")
+        else:
+            st.error("❌ Սխալ գաղտնաբառ")
+
+@st.dialog("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԱՊՐԱՆՔՆԵՐԻ ԲԱԶԱՆ")
+def delete_all_products_dialog():
+    st.markdown("### 🛑 ՈՒՇԱԴՐՈՒԹՅՈՒՆ: Դուք պատրաստվում եք ԼՐԻՎ ՄԱՔՐԵԼ ԱՊՐԱՆՔՆԵՐԻ ԲԱԶԱՆ։")
+    st.write("Այս գործողությունը անդառնալի է։")
+    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12)՝ ԱՄԲՈՂՋԸ ՋՆՋԵԼՈՒ համար", type="password", key="del_all_pass")
+    if st.button("💥 ՋՆՋԵԼ ԱՄԲՈՂՋԸ", type="primary"):
+        if pass_input == "12":
+            with st.spinner("⏳ Ամբողջ բազան մաքրվում է..."):
+                # Supabase-ում ամբողջ աղյուսակը մաքրելու համար դնում ենք id=neq.0 (որ բոլորին համապատասխանի)
+                res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=neq.0", headers=HEADERS)
+                if res.status_code in [200, 204]:
+                    st.success("💥 Ամբողջ ապրանքների բազան հաջողությամբ մաքրվեց։"); st.rerun()
+                else:
+                    st.error(f"❌ Սխալ։ Կոդ՝ {res.status_code}")
+        else:
+            st.error("❌ Սխալ գաղտնաբառ")
+
 @st.dialog("📝 Ապրանքի Տվյալների Փոփոխում", width="large")
 def edit_product_dialog(item):
-    st.markdown(f"### ⚙️ Խմբագրել ապրանքը՝ {item['model']}")
+    st.markdown(f"### ⚙️ Խմբագրել ապրանքը")
     col1, col2 = st.columns(2)
     with col1:
         u_category = st.text_input("📁 Խումբ", value=item.get("category", "Հեռախոս"))
@@ -130,7 +164,7 @@ def edit_product_dialog(item):
     with col2:
         u_imei = st.text_input("🔢 IMEI / Սերիական", value=item.get("imei", ""))
         u_matakarar = st.text_input("📦 Մատակարար", value=item.get("matakarar", "") if item.get("matakarar") else "")
-        u_buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.strptime(item["buy_date"], "%Y-%m-%d").date() if item.get("buy_date") else datetime.now())
+        u_buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.strptime(str(item["buy_date"]), "%Y-%m-%d").date() if item.get("buy_date") else datetime.now())
         u_nshumner = st.text_input("📌 Լրացուցիչ Նշումներ", value=item.get("nshumner", "") if item.get("nshumner") else "")
 
     if st.button("💾 ՊԱՀՊԱՆԵԼ", type="primary"):
@@ -170,7 +204,7 @@ def edit_remont_dialog(item):
         res = requests.patch(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item['id']}", headers=HEADERS, json=update_payload)
         if res.status_code in [200, 201, 204]: st.success("🎉 Թարմացվեց։"); st.rerun()
 
-@st.dialog("🗑️ Հաստատել Ջնջումը")
+@st.dialog("🗑️ Հաստատել Ռեմոնտի Ջնջումը")
 def delete_remont_dialog(item_id):
     pass_input = st.text_input("Գաղտնաբառ (12)", type="password")
     if st.button("🗑️ ՋՆՋԵԼ", type="primary"):
@@ -208,7 +242,6 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
         matakarar = st.text_input("📦 Ումից է ձեռք բերվել (Մատակարար)", placeholder="Օրինակ՝ Արմեն...")
         buy_date = st.date_input("📅 Ձեռքբերման Ամսաթիվ", datetime.now().date())
         
-        # 🟢 EXCEL / CSV ՄՈՒՏՔԻ ԸՆՏՐՈՒԹՅՈՒՆ
         import_type = st.radio("📥 Մուտքագրման Տեսակը", ["📝 Գրել ձեռքով / Սկանավորել", "📊 Գցել Excel / CSV ֆայլ"], horizontal=True)
 
     imei_list = []
@@ -226,11 +259,9 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 else:
                     df_file = pd.read_excel(uploaded_file)
                 
-                # Փնտրում ենք imei անունով սյունակ (մեծատառ/փոքրատառ կապ չունի)
                 imei_col = [col for col in df_file.columns if col.lower() == 'imei']
                 if imei_col:
                     imei_list = df_file[imei_col[0]].astype(str).str.strip().tolist()
-                    # Մաքրում ենք դատարկ տողերը
                     imei_list = [i for i in imei_list if i and i != 'nan']
                     st.success(f"✅ Ֆայլից հաջողությամբ կարդացվեց {len(imei_list)} հատ IMEI։")
                 else:
@@ -321,12 +352,10 @@ elif st.session_state.page == "baza":
             st.info("🔍 Մուտքագրեք Մոդելը, Հիշողությունը, Գույնը կամ IMEI-ն վերևի դաշտերում՝ տվյալները տեսնելու համար։")
         else:
             query_params = "select=*&order=id.desc&limit=200"
-            
             if search_model.strip():
                 words = [w.strip() for w in search_model.strip().split() if w.strip()]
                 for word in words:
                     query_params += f"&or=(model.ilike.*{word}*,storage.ilike.*{word}*,color.ilike.*{word}*)"
-            
             if search_imei.strip(): 
                 query_params += f"&imei=eq.{search_imei.strip()}"
 
@@ -337,24 +366,62 @@ elif st.session_state.page == "baza":
                 products_data = res.json()
                 if len(products_data) > 0:
                     st.success(f"📊 Գտնվել է {len(products_data)} ապրանք։")
-                    p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
-                    headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
-                    for idx, h in enumerate(headers_text): p_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
                     
-                    for idx, row in enumerate(products_data):
-                        row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                        r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
-                        r_cols[0].markdown(f"<div class='{row_style}'><code>{idx+1}</code></div>", unsafe_allow_html=True)
-                        r_cols[1].markdown(f"<div class='{row_style}'><b>{row['model']}</b></div>", unsafe_allow_html=True)
-                        r_cols[2].markdown(f"<div class='{row_style}'>{row['storage'] if row['storage'] else '֊'}</div>", unsafe_allow_html=True)
-                        r_cols[3].markdown(f"<div class='{row_style}'>{row['color'] if row['color'] else '֊'}</div>", unsafe_allow_html=True)
-                        r_cols[4].markdown(f"<div class='{row_style}'><code>{row['imei']}</code></div>", unsafe_allow_html=True)
-                        r_cols[5].markdown(f"<div class='{row_style}'>{row.get('category', 'Հեռախոս')}</div>", unsafe_allow_html=True)
-                        r_cols[6].markdown(f"<div class='{row_style}'>{row['buy_date'] if row['buy_date'] else '֊'}</div>", unsafe_allow_html=True)
-                        with r_cols[7]:
-                            if st.session_state.role == "admin":
-                                if st.button("📝", key=f"edit_p_{row['id']}"): edit_product_dialog(row)
-                            else: st.write("🔒")
+                    # 🛠️ ՏՎՅԱԼՆԵՐԻ ՊԱՏՐԱՍՏՈՒՄ ՋՆՋՄԱՆ ԱՂՅՈՒՍԱԿԻ ՀԱՄԱՐ
+                    df_prod = pd.DataFrame(products_data)
+                    
+                    # Ավելացնում ենք Checkbox-ի սյունակ սկզբում (լռելյայն False)
+                    df_prod.insert(0, "Նշել", False)
+                    
+                    # Սյունակների վերնագրերի սիրունացում
+                    df_display = df_prod[["Նշել", "id", "model", "storage", "color", "imei", "category", "buy_date", "matakarar"]].copy()
+                    df_display.columns = ["📌 Ջնջել", "🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📦 Մատակարար"]
+                    
+                    # 🟢 Գործողությունների կոճակներ (Միայն Ադմինի համար)
+                    if st.session_state.role == "admin":
+                        btn_col1, btn_col2, btn_col3 = st.columns([2, 2, 4])
+                        with btn_col1:
+                            # Կոճակ՝ նշվածները ջնջելու համար
+                            st.markdown("<p style='margin-bottom:2px; font-size:12px; color:gray;'>Նշիր տողերը աղյուսակում ու սեղմիր՝</p>", unsafe_allow_html=True)
+                            del_selected = st.button("🗑️ ՋՆՋԵԼ ՆՇՎԱԾ ԱՊՐԱՆՔՆԵՐԸ", type="primary", use_container_width=True)
+                        with btn_col2:
+                            # Կոճակ՝ ամբողջ բազան ջնջելու համար
+                            st.markdown("<p style='margin-bottom:2px; font-size:12px; color:red;'>Զգուշացում՝</p>", unsafe_allow_html=True)
+                            del_all = st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="secondary", use_container_width=True)
+                        with btn_col3:
+                            # Տող խմբագրելու ընտրություն
+                            st.markdown("<p style='margin-bottom:2px; font-size:12px; color:gray;'>Ապրանք ուղղելու համար ընտրիր այստեղ՝</p>", unsafe_allow_html=True)
+                            all_models_list = [f"{r['id']} - {r['model']} ({r['imei']})" for r in products_data]
+                            selected_edit_str = st.selectbox("📝 Ընտրիր ապրանքը ուղղելու համար", ["---"] + all_models_list, label_visibility="collapsed")
+                            if selected_edit_str != "---":
+                                selected_id = int(selected_edit_str.split(" - ")[0])
+                                target_item = next(item for item in products_data if item["id"] == selected_id)
+                                if st.button("⚙️ ԲԱՑԵԼ ԽՄԲԱԳՐՄԱՆ ՊԱՏՈՒՀԱՆԸ"):
+                                    edit_product_dialog(target_item)
+                        st.markdown("---")
+                    
+                    # 📊 Streamlit Data Editor՝ Checkbox-ներով
+                    edited_df = st.data_editor(
+                        df_display,
+                        disabled=["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📦 Մատակարար"],
+                        hide_index=True,
+                        use_container_width=True,
+                        key="prod_editor"
+                    )
+                    
+                    # 🛑 Ջնջման տրամաբանության ակտիվացում
+                    if st.session_state.role == "admin":
+                        if del_selected:
+                            # Գտնում ենք այն ID-ները, որոնց դիմաց Checkbox-ը True է դրվել
+                            selected_rows = edited_df[edited_df["📌 Ջնջել"] == True]
+                            if len(selected_rows) > 0:
+                                ids_to_delete = selected_rows["🆔 ID"].tolist()
+                                delete_selected_products_dialog(ids_to_delete)
+                            else:
+                                st.warning("⚠️ Խնդրում ենք նախապես աղյուսակում նշել (galochka դնել) այն տողերը, որոնք ուզում եք ջնջել։")
+                        
+                        if del_all:
+                            delete_all_products_dialog()
                 else:
                     st.warning("❌ Ոչ մի ապրանք չգտնվեց այդ տվյալներով։")
 
