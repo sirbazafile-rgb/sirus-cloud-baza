@@ -24,9 +24,6 @@ HEADERS = {
 
 st.set_page_config(page_title="Phone Business", page_icon="📱", layout="wide")
 
-# ՎԵՐՍԻԱ 3.6 (Գույների թարմացումով)
-st.write("")
-
 # Session State-ի սկզբնավորում
 if "authenticated" not in st.session_state: st.session_state.authenticated = False
 if "role" not in st.session_state: st.session_state.role = None
@@ -37,7 +34,7 @@ if "found_product" not in st.session_state: st.session_state.found_product = Non
 # Ֆունկցիա՝ Բազայից գաղտնաբառերը կարդալու համար
 def load_passwords():
     try:
-        res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc&limit=50000", headers=HEADERS)
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc&limit=1", headers=HEADERS)
         if res.status_code == 200 and len(res.json()) > 0:
             data = res.json()[0]
             return data.get("admin_password", "sirusadmin2026"), data.get("user_password", "sirususer2026")
@@ -45,18 +42,6 @@ def load_passwords():
         pass
     return "sirusadmin2026", "sirususer2026"
 
-# Ֆունկցիա՝ Բազայում գաղտնաբառերը թարմացնելու համար
-def update_passwords_in_db(new_admin, new_user):
-    res = requests.get(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS)
-    payload = {"admin_password": new_admin, "user_password": new_user}
-    
-    if res.status_code == 200 and len(res.json()) > 0:
-        row_id = res.json()[0]['id']
-        requests.patch(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}?id=eq.{row_id}", headers=HEADERS, json=payload)
-    else:
-        requests.post(f"{SUPABASE_URL}/rest/v1/{SETTINGS_TABLE}", headers=HEADERS, json=payload)
-
-# Կարդում ենք գաղտնաբառերը
 ADMIN_PASSWORD, USER_PASSWORD = load_passwords()
 
 def check_imei_exists(imei):
@@ -78,7 +63,7 @@ if not st.session_state.authenticated:
         else: st.error("❌ Սխալ գաղտնաբառ")
     st.stop()
 
-# --- 🗺️ NAVIGATION ՄԵՆՅՈՒ ԵՎ ԱՎՏՈՄԱՏ ԱԴԱՊՏԻՎ ՍՏԱՅԼԵՐ ---
+# --- 🗺️ STYLES ---
 st.markdown("""
     <style>
     .sticky-nav {
@@ -92,40 +77,15 @@ st.markdown("""
     .nav-container { background-color: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
     
     .table-header { 
-        background-color: #b0f2a5; 
-        padding: 10px; 
-        border-radius: 5px; 
-        font-weight: bold; 
-        text-align: center; 
-        border-bottom: 2px solid #464855; 
-        font-size: 12px; 
+        background-color: #b0f2a5; padding: 10px; border-radius: 5px; 
+        font-weight: bold; text-align: center; border-bottom: 2px solid #464855; font-size: 12px; 
     }
-    
     .table-row-odd { background-color: #769472; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
     .table-row-even { background-color:#779e7d; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); align-items: center; text-align: center; font-size: 14px; border-radius: 4px; min-height: 45px; display: flex; justify-content: center; }
-    
-    /* Ֆիլտրների դաշտերի հատուկ փոքրացված ստայլ */
-    div[data-testid="stHeaderBlock"] input {
-        padding: 2px 5px !important;
-    }
-    
-    @media (max-width: 768px) {
-        .sticky-nav { padding: 5px 10px; position: static !important; }
-        .main-content { margin-top: 15px; }
-        .nav-container { padding: 6px; }
-        .stButton>button { height: 32px !important; font-size: 11px !important; padding: 2px 5px !important; margin-bottom: 4px; }
-        .table-header { font-size: 11px !important; padding: 6px 2px !important; }
-        .table-row-odd, .table-row-even { font-size: 11px !important; padding: 5px 2px !important; min-height: 35px !important; }
-        .stWidgetFormLabel div, label p, .stMarkdown p, span { font-size: 11px !important; }
-        .stSelectbox div[data-baseweb="select"], .stTextInput input, .stNumberInput input { font-size: 11px !important; min-height: 28px !important; }
-        div[data-testid="stHorizontalBlock"] { gap: 4px !important; }
-    }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
-st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-
+st.markdown('<div class="sticky-nav"><div class="nav-container">', unsafe_allow_html=True)
 if st.session_state.role == "admin":
     menu_col1, menu_col2, menu_col3, menu_col4, menu_col5, menu_col6, menu_col7 = st.columns([1, 1.2, 1.2, 1.2, 1.4, 0.6, 0.8])
     with menu_col1:
@@ -144,20 +104,16 @@ if st.session_state.role == "admin":
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
 else:
     menu_col1, menu_col2 = st.columns([5, 1])
-    with menu_col1:
-        st.markdown("<h4 style='margin:0; padding-top:5px; color:#4E9F3D;'>📱 SIRUS SYSTEM (User Mode)</h4>", unsafe_allow_html=True)
+    with menu_col1: st.markdown("<h4 style='margin:0; padding-top:5px; color:#4E9F3D;'>📱 SIRUS SYSTEM (User Mode)</h4>", unsafe_allow_html=True)
     with menu_col2:
         if st.button("🚪 ԵԼՔ"): st.session_state.authenticated = False; st.rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
+st.markdown('</div></div>', unsafe_allow_html=True)
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-# --- Pop-up պատուհանների ֆունկցիաները ---
+# --- Dialogs ---
 @st.dialog("📝 Ապրանքի Տվյալների Փոփոխում", width="large")
 def edit_product_dialog(item):
-    st.markdown(f"### ⚙️ Խմբագրել ապրանքը՝ {item['model']} (Համար՝ {item['display_id']})")
+    st.markdown(f"### ⚙️ Խմբագրել ապրանքը՝ {item['model']}")
     col1, col2 = st.columns(2)
     with col1:
         u_category = st.text_input("📁 Խումբ", value=item.get("category", "Հեռախոս"))
@@ -170,7 +126,7 @@ def edit_product_dialog(item):
         u_buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.strptime(item["buy_date"], "%Y-%m-%d").date() if item.get("buy_date") else datetime.now())
         u_nshumner = st.text_input("📌 Լրացուցիչ Նշումներ", value=item.get("nshumner", "") if item.get("nshumner") else "")
 
-    if st.button("💾 ՊԱՀՊԱՆԵԼ ՓՈՓՈԽՈՒԹՅՈՒՆՆԵՐԸ", type="primary"):
+    if st.button("💾 ՊԱՀՊԱՆԵԼ", type="primary"):
         update_payload = {
             "category": u_category, "model": u_model, "storage": u_storage if u_storage else None,
             "color": u_color if u_color else None, "imei": u_imei, "matakarar": u_matakarar if u_matakarar else None,
@@ -181,7 +137,7 @@ def edit_product_dialog(item):
 
 @st.dialog("📝 Դեպքի Տվյալների Փոփոխում", width="large")
 def edit_remont_dialog(item):
-    st.markdown(f"### ⚙️ Խմբագրել՝ {item['model']} (Համար՝ {item['display_id']})")
+    st.markdown(f"### ⚙️ Խմբագրել Ռեմոնտը")
     col1, col2 = st.columns(2)
     with col1:
         u_model = st.text_input("📝 Մոդել", value=item.get("model", ""))
@@ -190,15 +146,15 @@ def edit_remont_dialog(item):
         u_kampania = st.text_input("🏢 Կամպանիա", value=item.get("kampania", ""))
         u_xndir = st.text_area("❌ Խնդիր", value=item.get("xndir", ""))
     with col2:
-        u_komplekt = st.selectbox("💳 Դրամարկղ / Վճարում", ["Կանխիկ", "Անկանխիկ"], index=0 if item.get("komplekt") == "Կանխիկ" else 1)
-        u_gumar = st.number_input("💵 Գումար (💰)", min_value=0, value=int(item.get("gumar", 0)), step=1000)
-        u_work = st.text_area("🛠️ Կատարված Աշխատանք", value=item.get("katarvac_ashxatanq", ""))
+        u_komplekt = st.selectbox("💳 Դրամարկղ", ["Կանխիկ", "Անկանխիկ"], index=0 if item.get("komplekt") == "Կանխիկ" else 1)
+        u_gumar = st.number_input("💵 Գումար", min_value=0, value=int(item.get("gumar", 0)), step=1000)
+        u_work = st.text_area("🛠️ Աշխատանք", value=item.get("katarvac_ashxatanq", ""))
         u_buy_date = st.date_input("📅 Ձեռքբերման Օր", datetime.strptime(item["dzerq_berman_date"], "%Y-%m-%d").date() if item.get("dzerq_berman_date") else datetime.now())
         status_list = ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է", "Ուղարկել եմ Կամպանիա"]
         u_status = st.selectbox("🚦 Կարգավիճակ", status_list, index=status_list.index(item["kargavichak"]) if item.get("kargavichak") in status_list else 0)
         u_nshum = st.text_input("📌 Նշումներ", value=item.get("nshumner", ""))
 
-    if st.button("💾 ԹԱՐՄԱՑՆԵԼ ՏՎՅԱԼՆԵՐԸ", type="primary"):
+    if st.button("💾 ԹԱՐՄԱՑՆԵԼ", type="primary"):
         update_payload = {
             "model": u_model, "imei": u_imei, "received_date": str(u_rec_date), "kampania": u_kampania,
             "xndir": u_xndir, "komplekt": u_komplekt, "gumar": u_gumar, "katarvac_ashxatanq": u_work,
@@ -207,234 +163,102 @@ def edit_remont_dialog(item):
         res = requests.patch(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item['id']}", headers=HEADERS, json=update_payload)
         if res.status_code in [200, 201, 204]: st.success("🎉 Թարմացվեց։"); st.rerun()
 
-@st.dialog("🗑️ Հաստատել Վերանորոգման Ջնջումը")
-def delete_remont_dialog(item_id, display_id, model_name):
-    st.warning(f"⚠️ Վստա՞հ ես, որ ուզում ես ջնջել № {display_id} «{model_name}» վերանորոգման տվյալը։")
-    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (12)", type="password")
-    if st.button("🗑️ HԱՍՏԱՏԵԼ ՋՆՋՈՒՄԸ", type="primary"):
+@st.dialog("🗑️ Հաստատել Ջնջումը")
+def delete_remont_dialog(item_id):
+    pass_input = st.text_input("Գաղտնաբառ (12)", type="password")
+    if st.button("🗑️ ՋՆՋԵԼ", type="primary"):
         if pass_input == "12":
-            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item_id}", headers=HEADERS)
-            if del_res.status_code in [200, 204]: st.success("Հաջողությամբ ջնջվեց։"); st.rerun()
-
-@st.dialog("🚨 Ջնջել Ամբողջ Ապրանքների Բազան")
-def delete_all_products_dialog():
-    st.error("❗❗ Այս գործողությունը կջնջի ԱՊՐԱՆՔՆԵՐԻ ամբողջ բազան։")
-    pass_input = st.text_input("Մուտքագրեք գաղտնաբառը (89)", type="password")
-    if st.button("💥 ՋՆՋԵԼ ԱՄԲՈՂՋՈՒԹՅԱՄԲ", type="primary"):
-        if pass_input == "89":
-            del_res = requests.delete(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?id=gt.0", headers=HEADERS)
-            if del_res.status_code in [200, 204]: st.success("🎉 Մաքրվեց։"); st.rerun()
+            if requests.delete(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?id=eq.{item_id}", headers=HEADERS).status_code in [200, 204]:
+                st.success("Ջնջվեց։"); st.rerun()
 
 @st.dialog("📱 Հեռախոսի Ամբողջական Ինֆորմացիան", width="large")
 def show_details_dialog(row):
-    st.markdown(f"### 🔗 {row['model']} (Համար՝ {row['display_id']})")
+    st.markdown(f"### 🔗 {row['model']}")
     st.markdown(f"**🔢 IMEI:** `{row['imei']}`")
-    st.markdown("---")
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.markdown(f"🏢 **Կամպանիա:** {row['kampania'] if row.get('kampania') else '֊'}")
-        st.markdown(f"📅 **Ստացման Ամսաթիվ:** {row['received_date']}")
-        st.markdown(f"📅 **Ձեռքբերման Ամսաթիվ:** {row['dzerq_berman_date'] if row['dzerq_berman_date'] else '֊'}")
-        st.markdown(f"💳 **Վճարման Տեսակ:** `{row['komplekt'] if row['komplekt'] else 'Կանխիկ'}`")
-    with col_d2:
-        st.markdown(f"💵 **Գումար:** {row['gumar']} 💰")
-        st.markdown(f"🚦 **Կարգավիճակ:** {row['kargavichak']}")
-    st.markdown("---")
-    st.info(f"❌ **Խնդիրը:**\n{row['xndir'] if row['xndir'] else 'Նշված չէ'}")
-    st.success(f"🛠️ **Կատարված Աշխատանք:**\n{row['katarvac_ashxatanq'] if row['katarvac_ashxatanq'] else 'Դեռ արված չէ'}")
+    st.info(f"❌ **Խնդիրը:** {row['xndir']}")
+    st.success(f"🛠️ **Աշխատանք:** {row['katarvac_ashxatanq']}")
 
-# --- 1. 🏠 ԳԼԽԱՎՈՐ ԷՋ ---
+# --- 1. 🏠 ԳԼԽԱՎՈՐ ---
 if st.session_state.page == "home" and st.session_state.role == "admin":
     st.title("🚀 SIRUS SYSTEM (Admin Mode)")
-    st.markdown("### Հեռախոսների և Բիզնեսի Կառավարման Ամպային Համակարգ")
+    st.markdown("### Հեռախոսների Ամպային Համակարգ")
 
 # --- 2. 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ ---
 elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
-    tab_manual, tab_excel = st.tabs(["✍️ ՁԵՌՔՈՎ ՄՈՒՏՔԱԳՐՈՒՄ", "📥 EXCEL / CSV ՖԱՅԼԻՑ ՄՈՒՏՔ"])
+    category = st.selectbox("📁 Խումբ", ["Հեռախոս", "Աքսեսուար", "Պլանշետ"])
+    model = st.text_input("📝 Մոդել")
+    storage = st.text_input("💾 Հիշողություն")
+    color = st.text_input("🎨 Գույն")
+    current_imeis = st.text_area("🔢 IMEI-ներ (ամեն տողում մեկ հատ)")
     
-    with tab_manual:
-        col1, col2 = st.columns(2)
-        with col1:
-            category_selection = st.selectbox("📁 Խումբ", ["Հեռախոս", "Աքսեսուար", "Պլանշետ", "Խելացի Ժամացույց", "Այլ..."])
-            category = st.text_input("✍️ Մուտքագրիր նոր խումբը") if category_selection == "Այլ..." else category_selection
-            model = st.text_input("📝 Մոդել")
-            storage = st.text_input("💾 Հիշողություն")
-            color = st.text_input("🎨 Գույն")
-        with col2:
-            matakarar = st.text_input("📦 Մատակարար")
-            buy_date = st.date_input("📅 Գնելու Ամսաթիվ", datetime.now(), key="manual_buy_date")
-            nshumner = st.text_input("📌 Լրացուցիչ Նշումներ")
-        st.markdown("---")
-        current_imeis = st.text_area("🔢 IMEI-ների / Սերիականների Ցուցակ", height=150)
-        
-        if st.button("💾 ՊԱՀՊԱՆԵԼ ԲՈԼՈՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
-            if model and current_imeis and category:
-                imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
-                has_duplicate = False
-                for imei in imei_list:
-                    if check_imei_exists(imei): st.error(f"⚠️ IMEI `{imei}` արդեն կա products-ում։"); has_duplicate = True; break
-                
-                if not has_duplicate:
-                    success_count = 0
-                    full_model_title = f"{model} {storage} {color}".strip()
-                    for imei in imei_list:
-                        prod_payload = {
-                            "category": category, "model": model, "storage": storage if storage else None, 
-                            "color": color if color else None, "imei": imei,
-                            "matakarar": matakarar if matakarar else None, "buy_date": str(buy_date), "nshumner": nshumner if nshumner else None
-                        }
-                        res = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=prod_payload)
-                        if res.status_code in [200, 201]: 
-                            success_count += 1
-                            hist_payload = {
-                                "date": str(buy_date), 
-                                "category": category, 
-                                "model": full_model_title, 
-                                "imei": imei, 
-                                "quantity": 1
-                            }
-                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=hist_payload)
-                    if success_count > 0: st.success(f"🎉 Հաջողությամբ ավելացվեց {success_count} ապրանք և գրանցվեց պատմության մեջ։"); st.balloons()
-            else: st.warning("⚠️ Լրացրեք պարտադիր դաշտերը։")
+    if st.button("💾 ՊԱՀՊԱՆԵԼ", type="primary"):
+        if model and current_imeis:
+            imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
+            for imei in imei_list:
+                prod_payload = {"category": category, "model": model, "storage": storage, "color": color, "imei": imei, "buy_date": str(datetime.now().date())}
+                requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=prod_payload)
+            st.success("🎉 Ավելացվեց։")
 
-    with tab_excel:
-        uploaded_file = st.file_uploader("Ընտրիր Excel կամ CSV ֆայլը", type=["xlsx", "csv"])
-        if uploaded_file is not None:
-            try:
-                if uploaded_file.name.endswith('.csv'): df_upload = pd.read_csv(uploaded_file, dtype={'imei': str, 'storage': str})
-                else: df_upload = pd.read_excel(uploaded_file, dtype={'imei': str, 'storage': str})
-                df_upload = df_upload.dropna(subset=['model', 'imei'])
-                st.dataframe(df_upload, use_container_width=True)
-                
-                if st.button("🚀 ՊԱՀՊԱՆԵԼ EXCEL-Ի ՏՎՅԱԼՆԵՐԸ ԲԱԶԱՅՈՒՄ", type="primary"):
-                    success_excel_count = 0
-                    for index, row_data in df_upload.iterrows():
-                        clean_imei = str(row_data['imei']).split('.')[0].strip()
-                        if check_imei_exists(clean_imei): continue
-                        
-                        cat_val = str(row_data['xumb']) if 'xumb' in row_data and pd.notna(row_data['xumb']) else "Հեռախոս"
-                        excel_payload = {
-                            "category": cat_val, "model": str(row_data['model']),
-                            "storage": str(row_data['storage']) if 'storage' in row_data and pd.notna(row_data['storage']) else None,
-                            "color": str(row_data['color']) if 'color' in row_data and pd.notna(row_data['color']) else None, "imei": clean_imei,
-                            "matakarar": str(row_data['matakarar']) if 'matakarar' in row_data and pd.notna(row_data['matakarar']) else None,
-                            "buy_date": str(row_data['buy_date']) if 'buy_date' in row_data and pd.notna(row_data['buy_date']) else str(datetime.now().date()),
-                            "nshumner": str(row_data['nshumner']) if 'nshumner' in row_data and pd.notna(row_data['nshumner']) else None
-                        }
-                        res_excel = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=excel_payload)
-                        if res_excel.status_code in [200, 201]:
-                            success_excel_count += 1
-                            ex_date = str(row_data['buy_date']) if 'buy_date' in row_data and pd.notna(row_data['buy_date']) else str(datetime.now().date())
-                            ex_model = f"{row_data['model']} {row_data['storage'] if 'storage' in row_data and pd.notna(row_data['storage']) else ''}".strip()
-                            excel_hist_payload = {
-                                "date": ex_date, "category": cat_val, "model": ex_model, "imei": clean_imei, "quantity": 1
-                            }
-                            requests.post(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}", headers=HEADERS, json=excel_hist_payload)
-                    if success_excel_count > 0: st.success(f"🎉 {success_excel_count} ապրանք գրանցվեց Excel-ից պատմության մեջ։"); st.balloons()
-            except Exception as e: st.error(f"❌ Սխալ. {e}")
-
-# --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ ---
+# --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄ ---
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
     st.title("🔧 ՎԵՐԱՆՈՐՈԳՄԱՆ ԲԱԺԻՆ")
-    search_imei = st.text_input("🔢 Գրիր կամ սկանավորիր IMEI-ն")
-    col_btn1, col_btn2 = st.columns([1, 1])
-    with col_btn1:
-        if st.button("🔍 ՓՆՏՐԵԼ ԲԱԶԱՅՈՒՄ"):
-            if search_imei:
-                res_remont_check = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?imei=eq.{search_imei}&order=id.desc", headers=HEADERS)
-                res_prod = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}", headers=HEADERS)
-                if res_remont_check.status_code == 200 and len(res_remont_check.json()) > 0:
-                    past_remont = res_remont_check.json()[0]
-                    st.warning(f"⚠️ Այս հեռախոսը ԱՐԴԵՆ ԵՂԵԼ Է վերանորոգման մեջ։")
-                    st.session_state.found_product = {"model": past_remont.get("model", ""), "imei": search_imei}; st.session_state.remont_step2 = True
-                elif res_prod.status_code == 200 and len(res_prod.json()) > 0:
-                    st.session_state.found_product = res_prod.json()[0]; st.session_state.remont_step2 = True
-                    st.success(f"📱 Գտնվեց ապրանքների բազայում՝ {st.session_state.found_product.get('model')}")
-                else: st.session_state.found_product = None; st.warning("⚠️ Այս IMEI-ով ապրանք չգտնվեց բազաներում։")
-    with col_btn2:
-        if st.button("➕ ԱՎԵԼԱՑՆԵԼ ՁԵՌՔՈՎ (ԱՌԱՆՑ ՓՆՏՐԵԼՈՒ)"):
-            st.session_state.found_product = {"model": "", "storage": "", "imei": search_imei}; st.session_state.remont_step2 = True
+    search_imei = st.text_input("🔢 IMEI")
+    if st.button("🔍 ՓՆՏՐԵԼ"):
+        res_prod = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?imei=eq.{search_imei}", headers=HEADERS)
+        if res_prod.status_code == 200 and len(res_prod.json()) > 0:
+            st.session_state.found_product = res_prod.json()[0]; st.session_state.remont_step2 = True
+        else:
+            st.session_state.found_product = {"model": "", "imei": search_imei}; st.session_state.remont_step2 = True
 
-    if st.session_state.remont_step2 and st.session_state.found_product is not None:
+    if st.session_state.remont_step2:
         prod = st.session_state.found_product
-        col1, col2 = st.columns(2)
-        with col1:
-            initial_model = prod.get('model', '')
-            if prod.get('storage'): initial_model = f"{initial_model} {prod.get('storage')}".strip()
-            model_input = st.text_input("📝 Մոդել", value=initial_model)
-            imei_input = st.text_input("🔢 IMEI", value=prod.get("imei", search_imei))
-            received_date = st.date_input("📅 Ստացման Ամսաթիվ", datetime.now())
-            kampania = st.text_input("🏢 Կամպանիա")
-            xndir = st.text_area("❌ Խնդիր")
-        with col2:
-            vcharman_tesak = st.selectbox("💳 ՎՃԱՐՄԱՆ ՏԵՍԱԿ", ["Կանխիկ", "Անկանխիկ"])
-            gumar = st.number_input("💵 Գումար", min_value=0, value=0, step=1000)
-            katarvac_ashxatanq = st.text_area("🛠️ Աշխատանք")
-            dzerq_date = st.date_input("📅 Ձեռքբերման Ամսաթիվ", datetime.now())
-            kargavichak = st.selectbox("🚦 Կարգավիճակ", ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է"])
+        model_input = st.text_input("📝 Մոդել", value=prod.get('model', ''))
+        imei_input = st.text_input("🔢 IMEI", value=prod.get('imei', ''))
+        xndir = st.text_area("❌ Խնդիր")
+        gumar = st.number_input("💵 Գումար", min_value=0, value=0)
+        kargavichak = st.selectbox("🚦 Կարգավիճակ", ["Ստացել եմ", "Վերանորոգման է", "Պատրաստ է"])
+        
+        if st.button("💾 ԳՐԱՆՑԵԼ ՌԵՄՈՆՏԸ"):
+            remont_payload = {"model": model_input, "imei": imei_input, "xndir": xndir, "gumar": gumar, "kargavichak": kargavichak, "received_date": str(datetime.now().date())}
+            requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload)
+            st.success("Գրանցվեց")
 
-        if st.button("💾 ՊԱՀՊԱՆԵԼ ՌԵՄՈՆՏԸ", type="primary"):
-            remont_payload = {
-                "model": model_input, "imei": imei_input, "received_date": str(received_date), "kampania": kampania,
-                "xndir": xndir, "gumar": gumar, "komplekt": vcharman_tesak, "katarvac_ashxatanq": katarvac_ashxatanq, 
-                "dzerq_berman_date": str(dzerq_date), "kargavichak": kargavichak
-            }
-            if requests.post(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}", headers=HEADERS, json=remont_payload).status_code in [200, 201]:
-                st.success("🎉 Ռեմոնտը գրանցվեց։"); st.session_state.remont_step2 = False; st.session_state.found_product = None; st.rerun()
-
-# --- 4. 📊 SIRUS CLOUD BAZA ---
+# --- 4. 📊 SIRUS CLOUD BAZA (⚡ ՍՈՒՊԵՐ ԱՐԱԳ ՏԱՐԲԵՐԱԿ) ---
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
     
     with tab1:
-        if st.session_state.role == "admin" and st.button("🚨 ՋՆՋԵԼ ԱՄԲՈՂՋ ԲԱԶԱՆ", type="primary"): delete_all_products_dialog()
+        st.markdown("#### ⚡ Բազայի Արագ Որոնում (Supabase Server Filter)")
         
-        # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ ---
-        st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
-        f_p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
-        with f_p_cols[1]: f_p_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_p_mod")
-        with f_p_cols[2]: f_p_storage = st.text_input("Ֆիլտր Հիշող.", placeholder="🔍...", label_visibility="collapsed", key="f_p_sto")
-        with f_p_cols[3]: f_p_color = st.text_input("Ֆիլտր Գույն", placeholder="🔍...", label_visibility="collapsed", key="f_p_col")
-        with f_p_cols[4]: f_p_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_p_im")
-        with f_p_cols[5]: f_p_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_p_ct")
+        # Օգտագործողը գրում է այստեղ, ու հարցումը գնում է մենակ էդ տվյալի համար
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            search_model = st.text_input("📝 Փնտրել ըստ Մոդելի", placeholder="Օրինակ՝ iPhone 13...")
+        with col_f2:
+            search_imei = st.text_input("🔢 Փնտրել ըստ IMEI-ի", placeholder="Գրիր կամ սկանավորիր...")
         
-        # --- 🔄 ՈՒՂՂՎԱԾ ՊԱԳԻՆԱՑԻԱ 25,000+ ԱՊՐԱՆՔՆԵՐԻ ՀԱՄԱՐ ---
-        products_data = []
-        offset = 0
-        chunk_size = 1000
+        # Կառուցում ենք URL-ը՝ սերվերային ֆիլտրերով
+        query_params = "select=*&order=id.desc"
+        if search_model:
+            query_params += f"&model=ilike.*{search_model}*"
+        if search_imei:
+            query_params += f"&imei=eq.{search_imei}"
+            
+        # Եթե ոչ մի բան գրած չի, բերում ենք մենակ վերջին 100 հատը, որ էջը չկախի
+        if not search_model and not search_imei:
+            query_params += "&limit=100"
+            st.caption("💡 Ցուցադրված են վերջին 100 ավելացված ապրանքները։ Ամբողջը տեսնելու համար օգտագործիր վերևի որոնումը։")
+        else:
+            query_params += "&limit=200" # Եթե փնտրում է, թող առավելագույնը 200 հատ բերի
+
+        # Կատարում ենք ՄԵԿ ԱՐԱԳ հարցում
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?{query_params}", headers=HEADERS)
         
-        while True:
-            page_headers = HEADERS.copy()
-            page_headers["Range"] = f"{offset}-{offset + chunk_size - 1}"
-            
-            res = requests.get(
-                f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=id.asc", 
-                headers=page_headers
-            )
-            
-            if res.status_code in [200, 206]:  # Supabase-ը մասնակի տվյալի դեպքում տալիս է 206
-                chunk = res.json()
-                if not chunk: 
-                    break
-                products_data.extend(chunk)
-                if len(chunk) < chunk_size: 
-                    break
-                offset += chunk_size
-            else:
-                st.error(f"❌ Ապրանքների բազայից կարդալու սխալ: {res.status_code}")
-                break
-                
-        if len(products_data) > 0:
-            # Ֆիլտրման տրամաբանություն
-            if f_p_model: products_data = [r for r in products_data if f_p_model.lower() in str(r.get('model','')).lower()]
-            if f_p_storage: products_data = [r for r in products_data if f_p_storage.lower() in str(r.get('storage','')).lower()]
-            if f_p_color: products_data = [r for r in products_data if f_p_color.lower() in str(r.get('color','')).lower()]
-            if f_p_imei: products_data = [r for r in products_data if f_p_imei.lower() in str(r.get('imei','')).lower()]
-            if f_p_cat: products_data = [r for r in products_data if f_p_cat.lower() in str(r.get('category','')).lower()]
-            
-            st.info(f"📊 Ցուցադրված են {len(products_data)} ապրանքներ։")
+        if res.status_code == 200:
+            products_data = res.json()
+            st.info(f"📊 Գտնվել է {len(products_data)} ապրանք։")
             
             p_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
             headers_text = ["🆔 ID", "📝 Մոդել", "💾 Հիշող.", "🎨 Գույն", "🔢 IMEI", "📁 Խումբ", "📅 Գնելու Օր", "📝 Ուղղել"]
@@ -442,9 +266,8 @@ elif st.session_state.page == "baza":
             
             for idx, row in enumerate(products_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1; row['display_id'] = display_id
                 r_cols = st.columns([0.8, 2.2, 1.2, 1.2, 2.3, 1.5, 1.3, 1.1])
-                r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
+                r_cols[0].markdown(f"<div class='{row_style}'><code>{idx+1}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{row['model']}</b></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='{row_style}'>{row['storage'] if row['storage'] else '֊'}</div>", unsafe_allow_html=True)
                 r_cols[3].markdown(f"<div class='{row_style}'>{row['color'] if row['color'] else '֊'}</div>", unsafe_allow_html=True)
@@ -457,92 +280,45 @@ elif st.session_state.page == "baza":
                     else: st.write("🔒")
 
     with tab2:
-        # --- ԱՆՀԱՏԱԿԱՆ ՖԻԼՏՐՆԵՐ ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ՀԱՄԱՐ ---
-        st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
-        f_r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
-        with f_r_cols[1]: f_r_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_r_mod")
-        with f_r_cols[2]: f_r_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_r_im")
-        with f_r_cols[3]: f_r_kam = st.text_input("Ֆիլտր Կամպ.", placeholder="🔍...", label_visibility="collapsed", key="f_r_km")
-        with f_r_cols[5]: f_r_st = st.text_input("Ֆիլտր Կարգավիճակ", placeholder="🔍...", label_visibility="collapsed", key="f_r_st")
+        st.markdown("#### ⚡ Վերանորոգումների Արագ Որոնում")
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            search_rem_model = st.text_input("📝 Մոդել (Ռեմոնտ)", placeholder="Փնտրել մոդելով...")
+        with col_r2:
+            search_rem_imei = st.text_input("🔢 IMEI (Ռեմոնտ)", placeholder="Փնտրել IMEI-ով...")
+
+        rem_params = "select=*&order=id.desc"
+        if search_rem_model: rem_params += f"&model=ilike.*{search_rem_model}*"
+        if search_rem_imei: rem_params += f"&imei=eq.{search_rem_imei}"
+        if not search_rem_model and not search_rem_imei: rem_params += "&limit=100"
+
+        res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?{rem_params}", headers=HEADERS)
         
-        # --- 🔄 ՈՒՂՂՎԱԾ ՊԱԳԻՆԱՑԻԱ ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐԻ ՀԱՄԱՐ ---
-        remont_data = []
-        offset_rem = 0
-        chunk_size_rem = 1000
-        
-        while True:
-            page_headers_rem = HEADERS.copy()
-            page_headers_rem["Range"] = f"{offset_rem}-{offset_rem + chunk_size_rem - 1}"
-            
-            res_rem = requests.get(
-                f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?select=*&order=id.asc", 
-                headers=page_headers_rem
-            )
-            
-            if res_rem.status_code in [200, 206]:
-                chunk_rem = res_rem.json()
-                if not chunk_rem: 
-                    break
-                remont_data.extend(chunk_rem)
-                if len(chunk_rem) < chunk_size_rem: 
-                    break
-                offset_rem += chunk_size_rem
-            else:
-                st.error(f"❌ Ռեմոնտի բազայի սխալ: {res_rem.status_code}")
-                break
-                
-        if len(remont_data) > 0:
-            # Ֆիլտրման տրամաբանություն
-            if f_r_model: remont_data = [r for r in remont_data if f_r_model.lower() in str(r.get('model','')).lower()]
-            if f_r_imei: remont_data = [r for r in remont_data if f_r_imei.lower() in str(r.get('imei','')).lower()]
-            if f_r_kam: remont_data = [r for r in remont_data if f_r_kam.lower() in str(r.get('kampania','')).lower()]
-            if f_r_st: remont_data = [r for r in remont_data if f_r_st.lower() in str(r.get('kargavichak','')).lower()]
-            
+        if res_rem.status_code == 200:
+            remont_data = res_rem.json()
             rem_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
             headers_rem = ["🆔 ID", "📝 Մոդել", "🔢 IMEI", "🏢 Կամպանիա", "💵 Գումար", "🚦 Կարգավիճակ", "📱 Ինֆո", "📝 Ուղղել", "🗑️ Ջնջել"]
             for idx, h in enumerate(headers_rem): rem_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
             
             for idx, rem_item in enumerate(remont_data):
                 row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
-                display_id = idx + 1; rem_item['display_id'] = display_id
                 r_cols = st.columns([0.8, 1.5, 2, 1.5, 1.2, 1.2, 1, 1, 1])
-                r_cols[0].markdown(f"<div class='{row_style}'><code>{display_id}</code></div>", unsafe_allow_html=True)
+                r_cols[0].markdown(f"<div class='{row_style}'><code>{idx+1}</code></div>", unsafe_allow_html=True)
                 r_cols[1].markdown(f"<div class='{row_style}'><b>{rem_item['model']}</b></div>", unsafe_allow_html=True)
                 r_cols[2].markdown(f"<div class='{row_style}'><code>{rem_item['imei']}</code></div>", unsafe_allow_html=True)
                 r_cols[3].markdown(f"<div class='{row_style}'>{rem_item['kampania'] if rem_item['kampania'] else '֊'}</div>", unsafe_allow_html=True)
                 r_cols[4].markdown(f"<div class='{row_style}'>{rem_item['gumar']} 💰</div>", unsafe_allow_html=True)
                 
-                # --- 🎨 ԱԴԱՊՏԻՎ ԳՈՒՅՆԵՐԻ ՏՐԱՄԱԲԱՆՈՒԹՅՈՒՆ ---
-                if rem_item['kargavichak'] == "Ստացել եմ": status_color = "#3498db"
-                elif rem_item['kargavichak'] == "Վերանորոգման է": status_color = "#FFA500"
-                elif rem_item['kargavichak'] == "Պատրաստ է": status_color = "#00FF00"
-                elif rem_item['kargavichak'] == "Ուղարկել եմ Կամպանիա": status_color = "#9b59b6"
-                else: status_color = "#999999"
-                
+                status_color = "#FFA500" if rem_item['kargavichak'] == "Վերանորոգման է" else ("#00FF00" if rem_item['kargavichak'] == "Պատրաստ է" else "#3498db")
                 r_cols[5].markdown(f"<div class='{row_style}' style='color:{status_color}; font-weight:bold;'>{rem_item['kargavichak']}</div>", unsafe_allow_html=True)
+                
                 with r_cols[6]:
                     if st.button("👁️", key=f"v_{rem_item['id']}"): show_details_dialog(rem_item)
                 with r_cols[7]:
                     if st.session_state.role == "admin":
                         if st.button("📝", key=f"e_{rem_item['id']}"): edit_remont_dialog(rem_item)
-                    else: st.write("🔒")
                 with r_cols[8]:
                     if st.session_state.role == "admin":
-                        if st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'], display_id, rem_item['model'])
-                    else: st.write("🔒")
+                        if st.button("🗑️", key=f"d_{rem_item['id']}"): delete_remont_dialog(rem_item['id'])
 
-# --- 5. 📜 ՊԱՏՄՈՒԹՅՈՒՆ ---
-elif st.session_state.page == "history" and st.session_state.role == "admin":
-    st.title("📜 ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅՈՒՆ")
-    
-    st.markdown("#### 🔍 Սյունակների Ֆիլտրեր")
-    f_h_cols = st.columns([1, 2, 3, 3, 1, 2])
-    with f_h_cols[1]: f_h_date = st.text_input("Ֆիլտր Օր", placeholder="🔍...", label_visibility="collapsed", key="f_h_dt")
-    with f_h_cols[2]: f_h_model = st.text_input("Ֆիլտր Մոդել", placeholder="🔍...", label_visibility="collapsed", key="f_h_mod")
-    with f_h_cols[3]: f_h_imei = st.text_input("Ֆիլտր IMEI", placeholder="🔍...", label_visibility="collapsed", key="f_h_im")
-    with f_h_cols[5]: f_h_cat = st.text_input("Ֆիլտր Խումբ", placeholder="🔍...", label_visibility="collapsed", key="f_h_ct")
-    
-    # Պատմությունը նույնպես կարելի է թողնել ստանդարտ, բայց եթե այնտեղ էլ է շատ տվյալ, կարող ես նույն Range-ը դնել
-    res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc&limit=1000", headers=HEADERS)
-    if res_hist.status_code == 200 and res_hist.json():
-        st.write("Վերջին գրառումները հաջողությամբ բեռնված են։")
+st.markdown('</div>', unsafe_allow_html=True)
