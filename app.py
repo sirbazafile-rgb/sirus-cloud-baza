@@ -185,29 +185,72 @@ def show_details_dialog(row):
     st.info(f"❌ **Խնդիրը:** {row.get('xndir', 'Նշված չէ')}")
     st.success(f"🛠️ **Աշխատանք:** {row.get('katarvac_ashxatanq', 'Արված չէ')}")
 
+@st.dialog("📋 Խմբի Մանրամասն Տվյալներ", width="large")
+def show_group_details_dialog(df_group):
+    st.markdown("### 🔍 Տվյալ խմբաքանակի բոլոր հեռախոսները")
+    st.dataframe(df_group[["model", "storage", "color", "imei", "buy_date", "matakarar"]], use_container_width=True, hide_index=True)
+
 # --- 1. 🏠 ԳԼԽԱՎՈՐ ---
 if st.session_state.page == "home" and st.session_state.role == "admin":
     st.title("🚀 SIRUS SYSTEM (Admin Mode)")
     st.markdown("### Հեռախոսների Ամպային Համակարգ")
 
-# --- 2. 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (Bulk Insert) ---
+# --- 2. 📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ (Bulk Insert & Excel Import) ---
 elif st.session_state.page == "add_product" and st.session_state.role == "admin":
     st.title("📦 ԱՊՐԱՆՔԻ ՁԵՌՔԲԵՐՈՒՄ")
-    category = st.selectbox("📁 Խումբ", ["Հեռախոս", "Աքսեսուար", "Պլանշետ"])
-    model = st.text_input("📝 Մոդել")
-    storage = st.text_input("💾 Հիշողություն")
-    color = st.text_input("🎨 Գույն")
-    current_imeis = st.text_area("🔢 IMEI-ներ (ամեն տողում մեկ հատ)")
+    col_l, col_r = st.columns(2)
+    with col_l:
+        category = st.selectbox("📁 Խումբ", ["Հեռախոս", "Աքսեսուար", "Պլանշետ"])
+        model = st.text_input("📝 Մոդել")
+        storage = st.text_input("💾 Հիշողություն")
+        color = st.text_input("🎨 Գույն")
+    with col_r:
+        matakarar = st.text_input("📦 Ումից է ձեռք բերվել (Մատակարար)", placeholder="Օրինակ՝ Արմեն...")
+        buy_date = st.date_input("📅 Ձեռքբերման Ամսաթիվ", datetime.now().date())
+        
+        # 🟢 EXCEL / CSV ՄՈՒՏՔԻ ԸՆՏՐՈՒԹՅՈՒՆ
+        import_type = st.radio("📥 Մուտքագրման Տեսակը", ["📝 Գրել ձեռքով / Սկանավորել", "📊 Գցել Excel / CSV ֆայլ"], horizontal=True)
+
+    imei_list = []
     
-    if st.button("💾 ՊԱՀՊԱՆԵԼ ԱՄԲՈՂՋԸ ՄԻԱՆԳԱՄԻՑ", type="primary"):
-        if model and current_imeis:
+    if import_type == "📝 Գրել ձեռքով / Սկանավորել":
+        current_imeis = st.text_area("🔢 IMEI-ներ (ամեն տողում մեկ հատ)")
+        if current_imeis:
             imei_list = [i.strip() for i in current_imeis.split('\n') if i.strip()]
+    else:
+        uploaded_file = st.file_uploader("📂 Ընտրեք Excel (.xlsx) կամ CSV ֆայլը", type=["xlsx", "csv"])
+        if uploaded_file is not None:
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df_file = pd.read_csv(uploaded_file)
+                else:
+                    df_file = pd.read_excel(uploaded_file)
+                
+                # Փնտրում ենք imei անունով սյունակ (մեծատառ/փոքրատառ կապ չունի)
+                imei_col = [col for col in df_file.columns if col.lower() == 'imei']
+                if imei_col:
+                    imei_list = df_file[imei_col[0]].astype(str).str.strip().tolist()
+                    # Մաքրում ենք դատարկ տողերը
+                    imei_list = [i for i in imei_list if i and i != 'nan']
+                    st.success(f"✅ Ֆայլից հաջողությամբ կարդացվեց {len(imei_list)} հատ IMEI։")
+                else:
+                    st.error("❌ Ֆայլի մեջ 'imei' անունով սյունակ չգտնվեց։ Խնդրում ենք ստուգել վերնագիրը։")
+            except Exception as e:
+                st.error(f"❌ Ֆայլը կարդալու սխալ: {e}")
+    
+    st.markdown("---")
+    if st.button("💾 ՊԱՀՊԱՆԵԼ ԱՄԲՈՂՋԸ ՄԻԱՆԳԱՄԻՑ", type="primary"):
+        if not model:
+            st.error("❌ Խնդրում ենք լրացնել 'Մոդել' դաշտը։")
+        elif not imei_list:
+            st.error("❌ Ոչ մի IMEI չի մուտքագրվել կամ ֆայլը դատարկ է։")
+        else:
             total_count = len(imei_list)
-            
             bulk_payload = [
                 {
                     "category": category, "model": model, "storage": storage if storage else None, 
-                    "color": color if color else None, "imei": imei, "buy_date": str(datetime.now().date())
+                    "color": color if color else None, "imei": imei, "buy_date": str(buy_date),
+                    "matakarar": matakarar if matakarar else None
                 } for imei in imei_list
             ]
             
@@ -215,7 +258,8 @@ elif st.session_state.page == "add_product" and st.session_state.role == "admin"
                 res = requests.post(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}", headers=HEADERS, json=bulk_payload)
                 if res.status_code in [200, 201, 204]:
                     st.success(f"🎉 Հաջողությամբ բազա ավելացվեց {total_count} հատ հեռախոս։")
-                else: st.error(f"❌ Բազայի սխալ։ Status: {res.status_code}")
+                else: 
+                    st.error(f"❌ Բազայի սխալ։ Status: {res.status_code}")
 
 # --- 3. 🔧 ՎԵՐԱՆՈՐՈԳՈՒՄ ---
 elif st.session_state.page == "remont" and st.session_state.role == "admin":
@@ -262,7 +306,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 if res_save.status_code in [200, 201, 204]:
                     st.success("🎉 Վերանորոգումը գրանցվեց։"); st.session_state.remont_step2 = False; st.session_state.found_product = None; st.rerun()
 
-# --- 4. 📊 SIRUS CLOUD BAZA (⚡ ԽԵԼԱՑԻ ՈՐՈՆՄԱՆ ՏԱՐԲԵՐԱԿ) ---
+# --- 4. 📊 SIRUS CLOUD BAZA ---
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
@@ -278,10 +322,8 @@ elif st.session_state.page == "baza":
         else:
             query_params = "select=*&order=id.desc&limit=200"
             
-            # --- 🚀 ԽԵԼԱՑԻ ՖԻԼՏՐԻ ՏՐԱՄԱԲԱՆՈՒԹՅՈՒՆԸ ---
             if search_model.strip():
                 words = [w.strip() for w in search_model.strip().split() if w.strip()]
-                # Յուրաքանչյուր բառի համար ստեղծում ենք (model, storage, color) ֆիլտր
                 for word in words:
                     query_params += f"&or=(model.ilike.*{word}*,storage.ilike.*{word}*,color.ilike.*{word}*)"
             
@@ -326,12 +368,10 @@ elif st.session_state.page == "baza":
             st.info("🔍 Մուտքագրեք տվյալները վերևի դաշտերում՝ ռեմոնտները տեսնելու համար։")
         else:
             rem_params = "select=*&order=id.desc&limit=200"
-            
             if search_rem_model.strip():
                 rem_words = [w.strip() for w in search_rem_model.strip().split() if w.strip()]
                 for r_word in rem_words:
                     rem_params += f"&or=(model.ilike.*{r_word}*,kampania.ilike.*{r_word}*)"
-                    
             if search_rem_imei.strip(): 
                 rem_params += f"&imei=eq.{search_rem_imei.strip()}"
 
@@ -371,13 +411,44 @@ elif st.session_state.page == "baza":
 # --- 5. 📜 ՊԱՏՄՈՒԹՅՈՒՆ ---
 elif st.session_state.page == "history" and st.session_state.role == "admin":
     st.title("📜 ԳՆՈՒՄՆԵՐԻ ՊԱՏՄՈՒԹՅՈՒՆ")
-    res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{HISTORY_TABLE}?select=*&order=id.desc&limit=100", headers=HEADERS)
+    
+    with st.spinner("⏳ Բեռնվում է պատմությունը..."):
+        res_hist = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?select=*&order=buy_date.desc&limit=1000", headers=HEADERS)
+        
     if res_hist.status_code == 200 and res_hist.json():
-        st.dataframe(res_hist.json(), use_container_width=True)
+        all_products = res_hist.json()
+        df = pd.DataFrame(all_products)
+        
+        df["matakarar"] = df["matakarar"].fillna("Նշված չէ")
+        df["buy_date"] = df["buy_date"].fillna("Անհայտ")
+        
+        grouped = df.groupby(["buy_date", "model", "matakarar"]).size().reset_index(name="qanak")
+        grouped = grouped.sort_values(by="buy_date", ascending=False)
+        
+        h_cols = st.columns([2, 3, 2, 1.5, 1.5])
+        headers_hist = ["📅 Ամսաթիվ", "📝 Մոդել", "📦 Մատակարար (Ումից)", "🔢 Քանակ", "👁️ Մանրամասն"]
+        for idx, h in enumerate(headers_hist): h_cols[idx].markdown(f"<div class='table-header'>{h}</div>", unsafe_allow_html=True)
+        
+        for idx, row in enumerate(grouped.to_dict(orient="records")):
+            row_style = "table-row-even" if idx % 2 == 1 else "table-row-odd"
+            r_cols = st.columns([2, 3, 2, 1.5, 1.5])
+            
+            r_cols[0].markdown(f"<div class='{row_style}'><b>{row['buy_date']}</b></div>", unsafe_allow_html=True)
+            r_cols[1].markdown(f"<div class='{row_style}'>{row['model']}</div>", unsafe_allow_html=True)
+            r_cols[2].markdown(f"<div class='{row_style}'>{row['matakarar']}</div>", unsafe_allow_html=True)
+            r_cols[3].markdown(f"<div class='{row_style}'><code>{row['qanak']} հատ</code></div>", unsafe_allow_html=True)
+            
+            sub_df = df[(df["buy_date"] == row["buy_date"]) & (df["model"] == row["model"]) & (df["matakarar"] == row["matakarar"])]
+            
+            with r_cols[4]:
+                if st.button("👁️ Բացել", key=f"hist_g_{idx}"):
+                    show_group_details_dialog(sub_df)
+    else:
+        st.warning("❌ Գնումների պատմությունը դատարկ է։")
 
-# --- 6. ⚙️ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐԻ ԷՋ ---
+# --- 6. ⚙️ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ ---
 elif st.session_state.page == "settings" and st.session_state.role == "admin":
-    st.title("⚙️ ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
+    st.title("⚙️  ՀԱՄԱԿԱՐԳԻ ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ")
     st.markdown("### 🔒 Գաղտնաբառերի Փոփոխում")
     
     st.markdown("---")
