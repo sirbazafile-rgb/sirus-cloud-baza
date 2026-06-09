@@ -262,7 +262,7 @@ elif st.session_state.page == "remont" and st.session_state.role == "admin":
                 if res_save.status_code in [200, 201, 204]:
                     st.success("🎉 Վերանորոգումը գրանցվեց։"); st.session_state.remont_step2 = False; st.session_state.found_product = None; st.rerun()
 
-# --- 4. 📊 SIRUS CLOUD BAZA (⚡ ԼՐԻՎ ԴԱՏԱՐԿ՝ ՄԻԱՅՆ ՖԻԼՏՐՈՎ ԲԵՐՈՂ ՏԱՐԲԵՐԱԿ) ---
+# --- 4. 📊 SIRUS CLOUD BAZA (⚡ ԽԵԼԱՑԻ ՈՐՈՆՄԱՆ ՏԱՐԲԵՐԱԿ) ---
 elif st.session_state.page == "baza":
     st.title("📊 SIRUS CLOUD BAZA")
     tab1, tab2 = st.tabs(["📦 ԱՊՐԱՆՔՆԵՐ", "🔧 ՎԵՐԱՆՈՐՈԳՈՒՄՆԵՐ"])
@@ -270,16 +270,23 @@ elif st.session_state.page == "baza":
     with tab1:
         st.markdown("#### ⚡ Որոնել Ապրանքներ պահեստից")
         col_f1, col_f2 = st.columns(2)
-        with col_f1: search_model = st.text_input("📝 Փնտրել ըստ Մոդելի", placeholder="Գրեք մոդելը (օր.՝ iPhone)...", key="p_mod")
+        with col_f1: search_model = st.text_input("📝 Խելացի Որոնում (Մոդել/Հիշող./Գույն)", placeholder="Օրինակ՝ Samsung 8/128 Black...", key="p_mod")
         with col_f2: search_imei = st.text_input("🔢 Փնտրել ըստ IMEI-ի", placeholder="Սկանավորեք կամ գրեք IMEI...", key="p_imei")
         
-        # 💡 Եթե ոչ մի բան գրած չէ, բազային հարցում ՉԵՆՔ ԱՆՈՒՄ, որ էջը ակնթարթորեն բացվի
         if not search_model.strip() and not search_imei.strip():
-            st.info("🔍 Մուտքագրեք Մոդելը կամ IMEI-ն վերևի դաշտերում՝ տվյալները տեսնելու համար։")
+            st.info("🔍 Մուտքագրեք Մոդելը, Հիշողությունը, Գույնը կամ IMEI-ն վերևի դաշտերում՝ տվյալները տեսնելու համար։")
         else:
             query_params = "select=*&order=id.desc&limit=200"
-            if search_model.strip(): query_params += f"&model=ilike.*{search_model.strip()}*"
-            if search_imei.strip(): query_params += f"&imei=eq.{search_imei.strip()}"
+            
+            # --- 🚀 ԽԵԼԱՑԻ ՖԻԼՏՐԻ ՏՐԱՄԱԲԱՆՈՒԹՅՈՒՆԸ ---
+            if search_model.strip():
+                words = [w.strip() for w in search_model.strip().split() if w.strip()]
+                # Յուրաքանչյուր բառի համար ստեղծում ենք (model, storage, color) ֆիլտր
+                for word in words:
+                    query_params += f"&or=(model.ilike.*{word}*,storage.ilike.*{word}*,color.ilike.*{word}*)"
+            
+            if search_imei.strip(): 
+                query_params += f"&imei=eq.{search_imei.strip()}"
 
             with st.spinner("⏳ Բեռնվում է..."):
                 res = requests.get(f"{SUPABASE_URL}/rest/v1/{PRODUCTS_TABLE}?{query_params}", headers=HEADERS)
@@ -312,15 +319,21 @@ elif st.session_state.page == "baza":
     with tab2:
         st.markdown("#### ⚡ Որոնել Վերանորոգումներ")
         col_r1, col_r2 = st.columns(2)
-        with col_r1: search_rem_model = st.text_input("📝 Մոդել (Ռեմոնտ)", placeholder="Գրեք մոդելը...", key="r_mod")
+        with col_r1: search_rem_model = st.text_input("📝 Խելացի Որոնում (Ռեմոնտ)", placeholder="Գրեք Մոդել/Հիշող./Կամպանիա...", key="r_mod")
         with col_r2: search_rem_imei = st.text_input("🔢 IMEI (Ռեմոնտ)", placeholder="Գրեք IMEI-ն...", key="r_imei")
 
         if not search_rem_model.strip() and not search_rem_imei.strip():
-            st.info("🔍 Մուտքագրեք Մոդելը կամ IMEI-ն վերևի դաշտերում՝ ռեմոնտները տեսնելու համար։")
+            st.info("🔍 Մուտքագրեք տվյալները վերևի դաշտերում՝ ռեմոնտները տեսնելու համար։")
         else:
             rem_params = "select=*&order=id.desc&limit=200"
-            if search_rem_model.strip(): rem_params += f"&model=ilike.*{search_rem_model.strip()}*"
-            if search_rem_imei.strip(): rem_params += f"&imei=eq.{search_rem_imei.strip()}"
+            
+            if search_rem_model.strip():
+                rem_words = [w.strip() for w in search_rem_model.strip().split() if w.strip()]
+                for r_word in rem_words:
+                    rem_params += f"&or=(model.ilike.*{r_word}*,kampania.ilike.*{r_word}*)"
+                    
+            if search_rem_imei.strip(): 
+                rem_params += f"&imei=eq.{search_rem_imei.strip()}"
 
             with st.spinner("⏳ Որոնվում է..."):
                 res_rem = requests.get(f"{SUPABASE_URL}/rest/v1/{REMONT_TABLE}?{rem_params}", headers=HEADERS)
